@@ -233,7 +233,7 @@ export component AppWindow inherits Window {
                             TouchArea { clicked => { root.active-mode = root.active-mode == "Standard mode" ? "Plan mode" : "Standard mode"; root.persist-settings(); root.mode-open = false; } }
                         }
                         if root.response-text != "": Rectangle {
-                            height: min(190px, max(64px, root.response-text.length * 0.42px));
+                            height: 160px;
                             background: root.bg-panel;
                             border-radius: 10px;
                             ScrollView {
