@@ -11,7 +11,9 @@ export component AppWindow inherits Window {
     pure callback model-matches(string, string) -> bool;
     callback select-configured-model(string);
     callback create-workspace(string);
+    callback record-session(string, string);
     in-out property <[string]> workspaces: [];
+    in-out property <[string]> session-entries: [];
     in-out property <bool> create-workspace-open: false;
     in-out property <string> new-workspace-name: "";
     in-out property <bool> session-ready: false;
@@ -70,6 +72,7 @@ export component AppWindow inherits Window {
     in-out property <bool> access-open: false;
     in-out property <bool> workspace-menu-open: false;
     in-out property <string> session-name: "New Session";
+    in-out property <string> session-workspace: "";
 
     HorizontalLayout {
         spacing: 0px;
@@ -124,6 +127,17 @@ export component AppWindow inherits Window {
                     background: root.active-workspace == workspace ? #303f59 : (workspace-row.has-hover ? #2c303b : transparent);
                     Text { text: "▣  " + workspace; color: root.fg-main; x: 12px; vertical-alignment: center; font-size: 13px; }
                     workspace-row := TouchArea { clicked => { root.active-workspace = workspace; root.session-ready = false; root.has-session = false; root.prompt-text = ""; root.workspace-menu-open = false; } }
+                }
+                for entry in root.session-entries: Rectangle {
+                    height: entry.starts-with(root.active-workspace + "///") && root.active-workspace != "" ? 30px : 0px;
+                    background: session-row.has-hover ? #313440 : transparent;
+                    border-radius: 7px;
+                    Text { text: "    ↳  " + entry.replace(root.active-workspace + "///", ""); color: root.fg-muted; x: 14px; font-size: 12px; vertical-alignment: center; }
+                    session-row := TouchArea { clicked => {
+                        root.session-name = entry.replace(root.active-workspace + "///", "");
+                        root.has-session = true;
+                        root.session-ready = true;
+                    } }
                 }
                 Rectangle { vertical-stretch: 1; background: #00000000; }
                 Rectangle {
@@ -263,6 +277,9 @@ export component AppWindow inherits Window {
                                                 if root.prompt-text != "" && root.session-ready && root.active-workspace != "" {
                                                     if root.session-ready && root.active-workspace != "" { root.send-prompt(root.prompt-text); }
                                                     root.session-name = root.prompt-text;
+                                                    if !root.has-session {
+                                                        root.record-session(root.active-workspace, root.session-name);
+                                                    }
                                                     root.has-session = true;
                                                     root.prompt-text = "";
                                                 }
