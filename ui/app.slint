@@ -33,13 +33,13 @@ export component AppWindow inherits Window {
                     height: 42px;
                     spacing: 7px;
                     Text { text: "◈"; color: #f6f6f8; font-size: 25px; }
-                    Text { text: "deepseek"; color: #f5f5f7; font-size: 19px; font-weight: 700; }
+                    Text { text: "IACodeX"; color: #f5f5f7; font-size: 19px; font-weight: 700; }
                     Rectangle {
                         width: 54px;
                         height: 15px;
                         background: #e6e7eb;
                         border-radius: 2px;
-                        Text { text: "HARNESS"; color: #232327; font-size: 9px; horizontal-alignment: center; vertical-alignment: center; }
+                        Text { text: "DESKTOP"; color: #232327; font-size: 8px; horizontal-alignment: center; vertical-alignment: center; }
                     }
                     Rectangle { horizontal-stretch: 1; background: #00000000; }
                     Text { text: "◧"; color: #c2c4ca; font-size: 19px; }
@@ -60,48 +60,23 @@ export component AppWindow inherits Window {
                     height: 34px;
                     Text { text: "Workspaces"; color: #a7a8b0; font-size: 14px; vertical-alignment: center; }
                     Rectangle { horizontal-stretch: 1; background: #00000000; }
-                    Text { text: "⌕     ☷     ⊞"; color: #d0d1d7; font-size: 19px; vertical-alignment: center; }
-                }
-                Rectangle { height: 8px; background: #00000000; }
-                Rectangle {
-                    height: 35px;
-                    background: #00000000;
-                    HorizontalLayout { padding-left: 6px; spacing: 8px; Image { source: @image-url("../project.png"); width: 18px; height: 18px; image-fit: contain; } Text { text: root.workspace-open ? "⌄ VorynOS" : "› VorynOS"; color: #d8d9e0; font-size: 14px; vertical-alignment: center; } }
-                    TouchArea { clicked => { root.workspace-open = !root.workspace-open; root.active-workspace = "VorynOS"; } }
-                }
-                if root.workspace-open: VerticalLayout {
-                    spacing: 2px;
-                    Rectangle {
-                        height: 34px;
-                        border-radius: 8px;
-                        background: #2b2b2e;
-                        Text { text: "New Session"; color: #e7e7ea; x: 27px; vertical-alignment: center; font-size: 14px; }
-                        TouchArea { clicked => { root.has-session = false; root.session-name = "New Session"; } }
-                    }
-                    Rectangle {
-                        height: 32px;
-                        background: #00000000;
-                        Text { text: "◌  Continue OS Development …"; color: #d4d4da; x: 10px; vertical-alignment: center; font-size: 13px; }
-                        Text { text: "17min"; color: #9698a1; horizontal-alignment: right; vertical-alignment: center; x: 211px; width: 40px; font-size: 11px; }
-                        TouchArea { clicked => { root.has-session = true; root.session-name = "Continue OS Development"; } }
-                    }
-                    Rectangle {
-                        height: 32px;
-                        background: #00000000;
-                        Text { text: "VorynOS"; color: #d4d4da; x: 27px; vertical-alignment: center; font-size: 13px; }
-                        Text { text: "2h"; color: #9698a1; horizontal-alignment: right; vertical-alignment: center; x: 224px; width: 27px; font-size: 11px; }
-                        TouchArea { clicked => { root.has-session = true; root.session-name = "VorynOS"; } }
-                    }
+                    Text { text: "+"; color: #c9cbd4; font-size: 23px; vertical-alignment: center; }
                 }
                 Rectangle {
-                    height: 36px;
-                    background: #00000000;
-                    HorizontalLayout { padding-left: 6px; spacing: 8px; Image { source: @image-url("../project.png"); width: 18px; height: 18px; image-fit: contain; } Text { text: "Ungrouped"; color: #d4d4da; vertical-alignment: center; font-size: 14px; } }
-                    TouchArea { clicked => { root.active-workspace = "Ungrouped"; } }
+                    height: 48px;
+                    background: #202023;
+                    border-radius: 10px;
+                    HorizontalLayout {
+                        padding-left: 12px;
+                        padding-right: 12px;
+                        spacing: 8px;
+                        Image { source: @image-url("../add-project.png"); width: 19px; height: 19px; image-fit: contain; }
+                        Text { text: "No projects yet"; color: #999ba5; font-size: 13px; vertical-alignment: center; }
+                    }
                 }
-                Rectangle { vertical-stretch: 1; background: #00000000; }
+                                Rectangle { vertical-stretch: 1; background: #00000000; }
                 Rectangle {
-                    height: 36px;
+                    height: 42px;
                     background: #00000000;
                     HorizontalLayout { spacing: 9px; Image { source: @image-url("../setting.png"); width: 19px; height: 19px; image-fit: contain; } Text { text: "Settings"; color: #e0e1e6; vertical-alignment: center; font-size: 14px; } }
                 }
@@ -123,14 +98,14 @@ export component AppWindow inherits Window {
                     spacing: 0px;
                     Rectangle { horizontal-stretch: 1; background: #00000000; }
                     VerticalLayout {
-                        width: min(780px, root.width - (root.show-sidebar ? 342px : 60px));
-                        spacing: 16px;
+                        width: min(760px, root.width - (root.show-sidebar ? 350px : 64px));
+                        spacing: 18px;
                         HorizontalLayout {
                             height: 48px;
                             alignment: center;
                             spacing: 10px;
-                            Text { text: "◈"; color: #f2f2f5; font-size: 31px; vertical-alignment: center; }
-                            Text { text: root.has-session ? root.session-name : "Into the Unknown"; color: #f0f0f3; font-size: 25px; vertical-alignment: center; }
+                            Text { text: "◈"; color: #a9baf5; font-size: 29px; vertical-alignment: center; }
+                            Text { text: root.has-session ? root.session-name : "Into the Unknown"; color: #f0f0f3; font-size: 24px; vertical-alignment: center; }
                             Rectangle {
                                 width: 66px;
                                 height: 22px;
@@ -169,18 +144,18 @@ export component AppWindow inherits Window {
                             TouchArea { clicked => { root.active-mode = root.active-mode == "Standard mode" ? "Plan mode" : "Standard mode"; root.mode-open = false; } }
                         }
                         Rectangle {
-                            height: 118px;
-                            background: #2b2b2e;
-                            border-radius: 22px;
+                            height: 124px;
+                            background: #252528;
+                            border-radius: 18px;
                             border-width: 1px;
-                            border-color: #39393e;
+                            border-color: #3d3d43;
                             VerticalLayout {
                                 padding: 9px;
                                 spacing: 4px;
                                 LineEdit {
                                     text <=> root.prompt-text;
                                     placeholder-text: "Describe what you want to build";
-                                    height: 62px;
+                                    height: 64px;
                                     font-size: 15px;
                                 }
                                 HorizontalLayout {
@@ -195,12 +170,12 @@ export component AppWindow inherits Window {
                                     Rectangle {
                                         width: 130px;
                                         background: #00000000;
-                                        Text { text: "♢ Full access ⌄"; color: #d3d4db; font-size: 13px; vertical-alignment: center; }
+                                        Text { text: "Full access ⌄"; color: #d3d4db; font-size: 13px; vertical-alignment: center; }
                                         TouchArea { clicked => { root.access-open = !root.access-open; } }
                                     }
                                     Rectangle { horizontal-stretch: 1; background: #00000000; }
                                     Rectangle {
-                                        width: 174px;
+                                        width: 188px;
                                         background: #00000000;
                                         Text { text: root.active-model + " ⌄"; color: #d3d4db; font-size: 12px; horizontal-alignment: right; vertical-alignment: center; }
                                         TouchArea { clicked => { root.model-open = !root.model-open; } }
@@ -238,7 +213,7 @@ export component AppWindow inherits Window {
                     }
                     Rectangle { horizontal-stretch: 1; background: #00000000; }
                 }
-                Rectangle { vertical-stretch: 1.4; background: #00000000; }
+                Rectangle { vertical-stretch: 1.15; background: #00000000; }
             }
         }
     }
