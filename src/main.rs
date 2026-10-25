@@ -2,7 +2,7 @@ slint::include_modules!();
 
 use std::{fs, path::PathBuf, process::Command};
 use serde_json::{json, Value};
-use slint::{ModelRc, VecModel};
+use slint::{Model, ModelRc, VecModel};
 use std::rc::Rc;
 
 fn config_path() -> Option<PathBuf> {
