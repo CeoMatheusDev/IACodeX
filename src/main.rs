@@ -27,6 +27,24 @@ fn read_workspaces() -> Vec<String> {
         .collect()
 }
 
+fn sessions_path() -> Option<PathBuf> {
+    Some(config_path()?.with_file_name("sessions.json"))
+}
+
+fn read_sessions() -> Vec<(String, String)> {
+    sessions_path()
+        .and_then(|path| fs::read_to_string(path).ok())
+        .and_then(|text| serde_json::from_str::<Value>(&text).ok())
+        .and_then(|value| value.get("sessions").and_then(Value::as_array).cloned())
+        .unwrap_or_default()
+        .iter()
+        .filter_map(|item| Some((
+            item.get("workspace")?.as_str()?.to_owned(),
+            item.get("title")?.as_str()?.to_owned(),
+        )))
+        .collect()
+}
+
 fn providers_path() -> Option<PathBuf> {
     Some(config_path()?.with_file_name("providers.json"))
 }
@@ -145,6 +163,31 @@ fn main() -> Result<(), slint::PlatformError> {
             app.set_session_ready(false);
             app.set_has_session(false);
         }
+    });
+    let session_list = Rc::new(VecModel::<slint::SharedString>::from(
+        read_sessions().into_iter().map(|(workspace, title)| format!("{workspace}///{title}").into()).collect::<Vec<_>>()
+    ));
+    app.set_session_entries(ModelRc::from(session_list.clone()));
+    app.on_session_in_workspace(|entry, workspace| {
+        entry.starts_with(&format!("{workspace}///"))
+    });
+    app.on_session_title(|entry, workspace| {
+        entry.strip_prefix(&format!("{workspace}///")).unwrap_or(entry.as_str()).into()
+    });
+    let sessions_for_record = session_list.clone();
+    app.on_record_session(move |workspace, title| {
+        if workspace.is_empty() || title.is_empty() { return; }
+        let Some(path) = sessions_path() else { return; };
+        let mut sessions = read_sessions();
+        sessions.push((workspace.to_string(), title.to_string()));
+        let data = json!({"sessions": sessions.iter().map(|(workspace, title)| json!({
+            "workspace": workspace, "title": title
+        })).collect::<Vec<_>>()});
+        if let Err(error) = save_json(&path, &data) {
+            eprintln!("Cannot save session: {error}");
+            return;
+        }
+        sessions_for_record.push(format!("{workspace}///{title}").into());
     });
     migrate_providers();
     let model_list = Rc::new(VecModel::<slint::SharedString>::from(Vec::new()));
