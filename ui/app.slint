@@ -2,8 +2,10 @@ import { VerticalBox, HorizontalBox, LineEdit, ScrollView } from "std-widgets.sl
 
 export component AppWindow inherits Window {
     title: "IACodeX — Into the Unknown";
-    width: 1280px;
-    height: 726px;
+    preferred-width: 1280px;
+    preferred-height: 726px;
+    min-width: 780px;
+    min-height: 520px;
     background: root.bg-main;
     callback send-prompt(string);
     callback cancel-prompt();
