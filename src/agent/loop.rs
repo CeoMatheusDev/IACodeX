@@ -1,6 +1,7 @@
 use crate::llm::{LlmClient, Message};
 use futures_util::StreamExt;
 use std::sync::Arc;
+use tokio::sync::Mutex;
 use tokio::sync::mpsc;
 use tokio_util::sync::CancellationToken;
 
@@ -20,11 +21,11 @@ pub struct AgentConfig {
 pub struct AgentLoop<C: LlmClient> {
     client: Arc<C>,
     config: AgentConfig,
-    history: Vec<Message>,
+    history: Arc<Mutex<Vec<Message>>>,
 }
 impl<C: LlmClient + 'static> AgentLoop<C> {
     pub fn new(client: C, config: AgentConfig) -> Self {
-        Self { client: Arc::new(client), config, history: Vec::new() }
+        Self { client: Arc::new(client), config, history: Arc::new(Mutex::new(Vec::new())) }
     }
     pub async fn run(
         &mut self,
@@ -36,12 +37,14 @@ impl<C: LlmClient + 'static> AgentLoop<C> {
             role: "system".into(),
             content: self.config.system_prompt.clone(),
         }];
-        messages.extend(self.history.clone());
+        let history = Arc::clone(&self.history);
+        messages.extend(history.lock().await.iter().cloned());
         messages.push(Message { role: "user".into(), content: user_prompt.clone() });
-        self.history.push(Message { role: "user".into(), content: user_prompt });
+        // Commit the turn only after a successful response, keeping history consistent.
         // v1: one completion per turn. Tool arguments will arrive in streaming deltas.
         let _ = (&self.config.model, self.config.max_iterations);
         let client = Arc::clone(&self.client);
+        let prompt = user_prompt;
         tokio::spawn(async move {
             let _ = tx.send(AgentEvent::Started).await;
             if cancel.is_cancelled() {
@@ -63,6 +66,7 @@ impl<C: LlmClient + 'static> AgentLoop<C> {
                     return;
                 }
             };
+            let mut response_text = String::new();
             loop {
                 tokio::select! {
                     _ = cancel.cancelled() => {
@@ -71,7 +75,10 @@ impl<C: LlmClient + 'static> AgentLoop<C> {
                     }
                     item = stream.next() => match item {
                         Some(Ok(delta)) => {
-                            if !delta.is_empty() && tx.send(AgentEvent::TextDelta(delta)).await.is_err() { return; }
+                            if !delta.is_empty() {
+                                response_text.push_str(&delta);
+                                if tx.send(AgentEvent::TextDelta(delta)).await.is_err() { return; }
+                            }
                         }
                         Some(Err(error)) => {
                             let event = if cancel.is_cancelled() { AgentEvent::Cancelled } else { AgentEvent::Failed(error.to_string()) };
@@ -81,6 +88,11 @@ impl<C: LlmClient + 'static> AgentLoop<C> {
                         None => break,
                     }
                 }
+            }
+            {
+                let mut stored = history.lock().await;
+                stored.push(Message { role: "user".into(), content: prompt });
+                stored.push(Message { role: "assistant".into(), content: response_text });
             }
             let _ = tx.send(AgentEvent::Completed).await;
         });
@@ -118,5 +130,10 @@ mod tests {
             AgentEvent::TextDelta(" mundo".into()),
             AgentEvent::Completed,
         ]);
+        let history = agent.history.lock().await;
+        assert_eq!(history.len(), 2);
+        assert_eq!(history[0].role, "user");
+        assert_eq!(history[1].role, "assistant");
+        assert_eq!(history[1].content, "Olá mundo");
     }
 }
