@@ -10,6 +10,11 @@ export component AppWindow inherits Window {
     in-out property <string> response-text: "";
     in-out property <bool> is-streaming: false;
     callback open-configuration-file();
+    callback fetch-provider-models(string, string, string);
+    callback edit-provider(string);
+    in-out property <[string]> discovered-models: [];
+    in-out property <bool> provider-loading: false;
+    in-out property <int> provider-health: 0;
     callback create-provider(string, string, string, string, string, string, string, string, string);
     pure callback model-matches(string, string) -> bool;
     callback select-configured-model(string);
@@ -547,7 +552,15 @@ export component AppWindow inherits Window {
                                         padding: 12px; spacing: 8px;
                                         Text { text: root.settings-provider; color: root.fg-main; font-size: 14px; vertical-alignment: center; }
                                         Rectangle { horizontal-stretch: 1; background: transparent; }
-                                        Text { text: (root.pt ? "Não configurado" : "Not configured"); color: #aeb1bc; font-size: 12px; vertical-alignment: center; }
+                                        Rectangle { width: 12px; height: 12px; border-radius: 6px;
+                                            background: root.provider-health == 1 ? #42cf77 : (root.provider-health == 2 ? #e85e61 : #e5ba4f);
+                                        }
+                                        Text { text: root.provider-health == 1 ? "Online" : (root.provider-health == 2 ? "Error" : "Unchecked"); color: root.fg-muted; font-size: 12px; vertical-alignment: center; }
+                                        Rectangle {
+                                            width: 54px; background: #414148; border-radius: 12px;
+                                            Text { text: root.pt ? "Editar" : "Edit"; color: root.fg-main; font-size: 11px; horizontal-alignment: center; vertical-alignment: center; }
+                                            TouchArea { clicked => { root.edit-provider(root.settings-provider); } }
+                                        }
                                         Rectangle {
                                             width: 66px; background: #414148; border-radius: 12px;
                                             Text { text: (root.pt ? "Remover" : "Remove"); color: #f0d3d5; font-size: 11px; horizontal-alignment: center; vertical-alignment: center; }
@@ -736,11 +749,28 @@ export component AppWindow inherits Window {
                     Rectangle { horizontal-stretch: 1; background: transparent; }
                     Rectangle {
                         width: 164px; background: #3d485f; border-radius: 9px;
-                        Text { text: "Fetch available models"; color: white; font-size: 12px; horizontal-alignment: center; vertical-alignment: center; }
-                        TouchArea { clicked => { root.provider-status = "Model discovery is not connected yet."; } }
+                        Text { text: root.provider-loading ? "Loading..." : "Fetch available models"; color: white; font-size: 12px; horizontal-alignment: center; vertical-alignment: center; }
+                        TouchArea { enabled: !root.provider-loading; clicked => {
+                            root.provider-loading = true;
+                            root.provider-status = "Checking provider and loading models...";
+                            root.provider-health = 0;
+                            root.fetch-provider-models(root.provider-url, root.provider-api-key, root.provider-protocol);
+                        } }
                     }
                 }
-                Text { text: "No models will be shown in the selector. Unlisted IDs can still be sent directly."; color: root.fg-muted; font-size: 11px; wrap: word-wrap; }
+                if root.discovered-models.length > 0: Rectangle {
+                    height: min(156px, root.discovered-models.length * 34px);
+                    background: root.bg-card; border-radius: 8px;
+                    ScrollView {
+                        VerticalLayout {
+                            for model in root.discovered-models: Rectangle {
+                                height: 32px; background: root.bg-card;
+                                Text { text: model; color: root.fg-main; font-size: 12px; x: 8px; vertical-alignment: center; }
+                                TouchArea { clicked => { root.provider-model = model; root.provider-model-added = true; root.provider-status = "Selected: " + model; } }
+                            }
+                        }
+                    }
+                }
                 if root.provider-model-added: Rectangle {
                     height: root.provider-model-expanded ? 160px : 120px;
                     background: root.bg-card;
