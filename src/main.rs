@@ -1,3 +1,6 @@
+mod agent;
+mod llm;
+
 slint::include_modules!();
 
 use std::{fs, path::PathBuf, process::Command};
