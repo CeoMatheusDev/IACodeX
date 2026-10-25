@@ -475,4 +475,124 @@ export component AppWindow inherits Window {
         }
     }
 
+    if root.settings-open && root.provider-editor: Rectangle {
+        background: #050509d9;
+        TouchArea { clicked => { root.provider-editor = false; } }
+        Rectangle {
+            width: min(520px, parent.width - 36px);
+            height: min(590px, parent.height - 36px);
+            x: (parent.width - self.width) / 2;
+            y: (parent.height - self.height) / 2;
+            background: root.bg-panel;
+            border-radius: 18px;
+            border-width: 1px;
+            border-color: root.outline;
+            TouchArea { }
+            VerticalLayout {
+                padding: 20px; spacing: 9px;
+                HorizontalLayout {
+                    height: 34px;
+                    Text { text: root.pt ? "Adicionar provedor" : "Add provider"; color: root.fg-main; font-size: 19px; font-weight: 600; vertical-alignment: center; }
+                    Rectangle { horizontal-stretch: 1; background: transparent; }
+                    Rectangle {
+                        width: 32px; background: #424249; border-radius: 8px;
+                        Text { text: "×"; color: white; horizontal-alignment: center; vertical-alignment: center; font-size: 20px; }
+                        TouchArea { clicked => { root.provider-editor = false; root.provider-list-open = false; } }
+                    }
+                }
+                Text { text: "Provider name"; color: root.fg-main; font-size: 13px; }
+                Rectangle {
+                    height: 38px; background: root.bg-card; border-radius: 9px; border-width: 1px; border-color: root.outline;
+                    HorizontalLayout {
+                        padding-left: 12px; padding-right: 12px;
+                        Text { text: root.provider-name == "" ? "Select provider" : root.provider-name; color: root.fg-main; vertical-alignment: center; font-size: 14px; }
+                        Rectangle { horizontal-stretch: 1; background: transparent; }
+                        Text { text: "⌄"; color: root.fg-main; vertical-alignment: center; }
+                    }
+                    TouchArea { clicked => { root.provider-list-open = !root.provider-list-open; } }
+                }
+                if root.provider-list-open: Rectangle {
+                    height: 150px; background: root.bg-card; border-radius: 10px;
+                    ScrollView {
+                        VerticalLayout {
+                            spacing: 2px;
+                            for provider in ["DeepSeek", "OpenAI", "Anthropic", "Google Gemini", "OpenRouter", "Groq", "Mistral AI", "Cohere", "Together AI", "Fireworks AI", "Perplexity", "xAI", "Ollama", "LM Studio", "Azure OpenAI", "Custom"]: Rectangle {
+                                height: 32px; background: #41414a; border-radius: 5px;
+                                Text { text: provider; color: white; font-size: 13px; vertical-alignment: center; x: 12px; }
+                                TouchArea { clicked => {
+                                    root.provider-name = provider;
+                                    root.provider-custom = provider == "Custom";
+                                    root.provider-url = provider == "DeepSeek" ? "https://api.deepseek.com" :
+                                        provider == "OpenAI" ? "https://api.openai.com/v1" :
+                                        provider == "Anthropic" ? "https://api.anthropic.com/v1" :
+                                        provider == "Google Gemini" ? "https://generativelanguage.googleapis.com/v1beta" :
+                                        provider == "OpenRouter" ? "https://openrouter.ai/api/v1" :
+                                        provider == "Groq" ? "https://api.groq.com/openai/v1" :
+                                        provider == "Mistral AI" ? "https://api.mistral.ai/v1" :
+                                        provider == "Cohere" ? "https://api.cohere.com/v2" :
+                                        provider == "Together AI" ? "https://api.together.xyz/v1" :
+                                        provider == "Fireworks AI" ? "https://api.fireworks.ai/inference/v1" :
+                                        provider == "Perplexity" ? "https://api.perplexity.ai" :
+                                        provider == "xAI" ? "https://api.x.ai/v1" :
+                                        provider == "Ollama" ? "http://localhost:11434/v1" :
+                                        provider == "LM Studio" ? "http://localhost:1234/v1" : "";
+                                    root.provider-model = "";
+                                    root.provider-status = "";
+                                    root.provider-list-open = false;
+                                } }
+                            }
+                        }
+                    }
+                }
+                if root.provider-custom: LineEdit { text <=> root.provider-name; placeholder-text: "Custom provider name"; }
+                Text { text: "API key"; color: root.fg-main; font-size: 13px; }
+                LineEdit { text <=> root.provider-api-key; placeholder-text: "Enter API key (not saved)"; input-type: password; }
+                Text { text: "Base URL"; color: root.fg-main; font-size: 13px; }
+                LineEdit { text <=> root.provider-url; placeholder-text: "https://api.example.com/v1"; }
+                HorizontalLayout {
+                    height: 36px; spacing: 8px;
+                    Text { text: "Models"; color: root.fg-main; font-size: 13px; vertical-alignment: center; }
+                    Rectangle { horizontal-stretch: 1; background: transparent; }
+                    Rectangle {
+                        width: 164px; background: #3d485f; border-radius: 9px;
+                        Text { text: "Fetch available models"; color: white; font-size: 12px; horizontal-alignment: center; vertical-alignment: center; }
+                        TouchArea { clicked => { root.provider-status = "Model discovery is not connected yet."; } }
+                    }
+                }
+                Text { text: "No models will be shown in the selector. Unlisted IDs can still be sent directly."; color: root.fg-muted; font-size: 11px; wrap: word-wrap; }
+                LineEdit { text <=> root.provider-model; placeholder-text: "Model ID"; }
+                Rectangle {
+                    height: 34px; background: #393b45; border-radius: 9px;
+                    Text { text: "+ Add model"; color: white; font-size: 13px; horizontal-alignment: center; vertical-alignment: center; }
+                    TouchArea { clicked => { root.provider-status = root.provider-model != "" ? "Model ID added." : "Enter a model ID."; } }
+                }
+                if root.provider-status != "": Text { text: root.provider-status; color: root.fg-muted; font-size: 12px; }
+                Rectangle { vertical-stretch: 1; background: transparent; }
+                HorizontalLayout {
+                    height: 40px; spacing: 12px;
+                    Rectangle {
+                        background: #41414a; border-radius: 9px;
+                        Text { text: "Cancel"; color: white; horizontal-alignment: center; vertical-alignment: center; }
+                        TouchArea { clicked => { root.provider-editor = false; root.provider-list-open = false; } }
+                    }
+                    Rectangle {
+                        background: #4a638c; border-radius: 9px;
+                        Text { text: "Apply"; color: white; horizontal-alignment: center; vertical-alignment: center; }
+                        TouchArea { clicked => {
+                            if root.provider-name != "" && root.provider-url != "" {
+                                root.settings-provider = root.provider-name;
+                                root.active-model = root.provider-model != "" ? root.provider-model : root.active-model;
+                                root.provider-editor = false;
+                                root.provider-list-open = false;
+                                root.persist-settings();
+                            } else {
+                                root.provider-status = "Provider name and Base URL are required.";
+                            }
+                        } }
+                    }
+                }
+            }
+        }
+    }
+
 }
