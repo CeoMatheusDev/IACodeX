@@ -161,14 +161,6 @@ fn main() -> Result<(), slint::PlatformError> {
     let app = AppWindow::new()?;
     // Start maximized while retaining the desktop window controls (minimize/maximize/close).
     app.window().set_maximized(true);
-    let weak_for_maximize = app.as_weak();
-    app.on_toggle_maximize(move || {
-        if let Some(ui) = weak_for_maximize.upgrade() {
-            let maximize = !ui.window().is_maximized();
-            ui.window().set_maximized(maximize);
-            ui.set_window_maximized(maximize);
-        }
-    });
     app.set_system_dark(detected_dark);
     let workspace_list = Rc::new(VecModel::<slint::SharedString>::from(
         read_workspaces().into_iter().map(Into::into).collect::<Vec<_>>()
