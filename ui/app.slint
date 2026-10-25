@@ -354,30 +354,51 @@ export component AppWindow inherits Window {
                                 }
                             }
                             if root.settings-tab == 1: VerticalLayout {
-                                spacing: 12px;
+                                spacing: 14px;
                                 Text { text: "Models"; color: #f3f3f6; font-size: 19px; font-weight: 600; }
-                                Text { text: "Manage AI providers (configuration preview)."; color: #aaaaaf; font-size: 12px; }
-                                for provider in ["DeepSeek", "OpenRouter", "Custom provider"]: Rectangle {
-                                    height: 54px; background: #323236; border-radius: 11px;
+                                Text { text: "Add a provider to configure its API and available models."; color: #aaaaaf; font-size: 12px; }
+                                if root.settings-provider != "": Rectangle {
+                                    height: 56px; background: #323236; border-radius: 11px;
                                     border-width: 1px; border-color: #48484e;
                                     HorizontalLayout {
-                                        padding: 12px;
-                                        Text { text: provider; color: #f2f2f4; font-size: 14px; vertical-alignment: center; }
+                                        padding: 12px; spacing: 8px;
+                                        Text { text: root.settings-provider; color: #f2f2f4; font-size: 14px; vertical-alignment: center; }
                                         Rectangle { horizontal-stretch: 1; background: transparent; }
+                                        Text { text: "Not configured"; color: #aeb1bc; font-size: 12px; vertical-alignment: center; }
                                         Rectangle {
-                                            width: 62px; background: #424249; border-radius: 13px;
-                                            Text { text: "Edit"; color: #eeeeef; font-size: 12px; horizontal-alignment: center; vertical-alignment: center; }
-                                            TouchArea { clicked => { root.settings-provider = provider; } }
+                                            width: 66px; background: #414148; border-radius: 12px;
+                                            Text { text: "Remove"; color: #f0d3d5; font-size: 11px; horizontal-alignment: center; vertical-alignment: center; }
+                                            TouchArea { clicked => { root.settings-provider = ""; } }
                                         }
                                     }
                                 }
-                                if root.settings-provider != "": Rectangle {
-                                    height: 48px; background: #3a3b45; border-radius: 9px;
-                                    Text { text: root.settings-provider + ": API configuration coming soon"; color: #cdd6ed; font-size: 12px; horizontal-alignment: center; vertical-alignment: center; }
+                                if root.settings-provider == "": Rectangle {
+                                    height: 170px; background: #303034; border-radius: 12px;
+                                    border-width: 1px; border-color: #45454b;
+                                    VerticalLayout {
+                                        alignment: center; spacing: 8px;
+                                        Text { text: "No providers configured"; color: #e5e5ea; font-size: 15px; horizontal-alignment: center; }
+                                        Text { text: "Add a provider or create a custom one to get started."; color: #a5a5af; font-size: 12px; horizontal-alignment: center; }
+                                    }
                                 }
-                                Rectangle {
-                                    height: 44px; background: #373740; border-radius: 10px;
-                                    Text { text: "+ Add provider (coming soon)"; color: #c7c7d2; horizontal-alignment: center; vertical-alignment: center; font-size: 13px; }
+                                HorizontalLayout {
+                                    height: 46px; spacing: 12px;
+                                    Rectangle {
+                                        border-radius: 11px; border-width: 1px; border-color: #595963;
+                                        background: #393940;
+                                        Text { text: "+ Add provider"; color: #f0f0f4; font-size: 13px; horizontal-alignment: center; vertical-alignment: center; }
+                                        TouchArea { clicked => { root.settings-provider = "New provider"; } }
+                                    }
+                                    Rectangle {
+                                        border-radius: 11px; border-width: 1px; border-color: #595963;
+                                        background: #393940;
+                                        Text { text: "+ Add a custom provider"; color: #f0f0f4; font-size: 13px; horizontal-alignment: center; vertical-alignment: center; }
+                                        TouchArea { clicked => { root.settings-provider = "Custom provider"; } }
+                                    }
+                                }
+                                if root.settings-provider != "": Text {
+                                    text: "Provider added locally for this session. API configuration is not implemented yet.";
+                                    color: #b9bed1; font-size: 12px; wrap: word-wrap;
                                 }
                             }
                             if root.settings-tab == 2: VerticalLayout {
