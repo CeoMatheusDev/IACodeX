@@ -282,11 +282,12 @@ fn main() -> Result<(), slint::PlatformError> {
 
     let models_for_create = model_list.clone();
     let weak = app.as_weak();
-    app.on_create_provider(move |id, name, url, protocol, _api_key, model_id, display, context, max_output| {
+    app.on_create_provider(move |id, name, url, protocol, api_key, model_id, display, context, max_output| {
         let Some(path) = providers_path() else { return; };
         let mut data = read_providers();
         if !data.is_object() { data = json!({}); }
         let key = if id.is_empty() { name.to_lowercase().replace(' ', "-") } else { id.to_string() };
+        let model_id = if model_id.is_empty() && name == "DeepSeek" { "deepseek-chat".into() } else { model_id };
         let models = if model_id.is_empty() {
             json!([])
         } else {
@@ -297,9 +298,12 @@ fn main() -> Result<(), slint::PlatformError> {
         if !data.get("providers").map(Value::is_object).unwrap_or(false) {
             data["providers"] = json!({});
         }
+        let previous_key = data["providers"][&key].get("api_key")
+            .and_then(Value::as_str).unwrap_or("").to_owned();
+        let saved_key = if api_key.is_empty() { previous_key } else { api_key.to_string() };
         data["providers"][&key] = json!({
             "id": key, "name": name.as_str(), "base_url": url.as_str(),
-            "api_protocol": protocol.as_str(), "models": models
+            "api_protocol": protocol.as_str(), "api_key": saved_key, "models": models
         });
         if let Err(error) = save_json(&path, &data) {
             eprintln!("Cannot save provider: {error}");
@@ -368,16 +372,18 @@ fn main() -> Result<(), slint::PlatformError> {
             return;
         }
         let url = provider.get("base_url").and_then(Value::as_str).unwrap_or("").to_owned();
+        let saved_key = provider.get("api_key").and_then(Value::as_str)
+            .filter(|key| !key.is_empty()).map(str::to_owned);
         let env_key = std::env::var("DEEPSEEK_API_KEY").ok().filter(|key| !key.is_empty());
-        let insecure = env_key.is_none();
-        let key = env_key.or_else(|| provider.get("api_key").and_then(Value::as_str).map(str::to_owned));
+        let insecure = saved_key.is_some();
+        let key = saved_key.or(env_key);
         let Some(key) = key.filter(|key| !key.is_empty()) else {
-            ui.set_response_text("Missing DEEPSEEK_API_KEY (or providers.json api_key).".into());
+            ui.set_response_text("Configure a chave API em Settings > Providers antes de enviar.".into());
             ui.set_is_streaming(false);
             return;
         };
         if insecure {
-            ui.set_response_text("Warning: using plaintext api_key from providers.json (less secure).\\n".into());
+            ui.set_response_text("Aviso: chave salva em providers.json (texto simples).\n".into());
         }
         let token = CancellationToken::new();
         if let Ok(mut guard) = cancellation_for_send.lock() {
