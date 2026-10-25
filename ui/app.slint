@@ -298,8 +298,8 @@ export component AppWindow inherits Window {
                                                     root.response-text = "";
                                                     root.is-streaming = true;
                                                     if root.session-ready && root.active-workspace != "" { root.send-prompt(root.prompt-text); }
-                                                    root.session-name = root.prompt-text;
                                                     if !root.has-session {
+                                                        root.session-name = root.prompt-text;
                                                         root.record-session(root.active-workspace, root.session-name);
                                                     }
                                                     root.has-session = true;
