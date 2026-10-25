@@ -183,7 +183,8 @@ export component AppWindow inherits Window {
                     spacing: 0px;
                     Rectangle { horizontal-stretch: 1; background: #00000000; }
                     VerticalLayout {
-                        width: min(760px, root.width - (root.show-sidebar ? 350px : 64px));
+                        preferred-width: 760px;
+                        horizontal-stretch: 1;
                         spacing: 18px;
                         HorizontalLayout {
                             height: 48px;
