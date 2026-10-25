@@ -65,33 +65,6 @@ fn read_providers() -> Value {
         .unwrap_or_else(|| json!({"providers": {}}))
 }
 
-fn migrate_providers() {
-    let (Some(settings_path), Some(provider_path)) = (config_path(), providers_path()) else { return; };
-    let Ok(text) = fs::read_to_string(&settings_path) else { return; };
-    let Ok(mut settings) = serde_json::from_str::<Value>(&text) else { return; };
-    let Some(legacy) = settings.get("providers").filter(|v| v.is_object()).cloned() else { return; };
-    let mut providers = read_providers();
-    if let (Some(target), Some(source)) = (
-        providers.get_mut("providers").and_then(Value::as_object_mut),
-        legacy.as_object(),
-    ) {
-        for (key, value) in source {
-            target.entry(key.clone()).or_insert_with(|| value.clone());
-        }
-    }
-    if let Err(error) = save_json(&provider_path, &providers) {
-        eprintln!("Cannot migrate providers: {error}");
-        return;
-    }
-    if let Some(obj) = settings.as_object_mut() {
-        obj.remove("providers");
-        obj.insert("provider".into(), json!(""));
-    }
-    if let Err(error) = save_json(&settings_path, &settings) {
-        eprintln!("Cannot clean up legacy provider settings: {error}");
-    }
-}
-
 fn save_json(path: &std::path::Path, value: &Value) -> std::io::Result<()> {
     if let Some(parent) = path.parent() { fs::create_dir_all(parent)?; }
     let encoded = serde_json::to_vec_pretty(value)?;
