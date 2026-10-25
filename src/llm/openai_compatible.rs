@@ -17,11 +17,7 @@ impl OpenAiCompatible {
             .build()
             .map_err(|e| LlmError(format!("HTTP client: {e}")))?;
         let base = base_url.trim_end_matches('/');
-        let endpoint = if base.ends_with("/v1") {
-            format!("{base}/chat/completions")
-        } else {
-            format!("{base}/chat/completions")
-        };
+        let endpoint = format!("{base}/chat/completions");
         Ok(Self { http, endpoint, api_key, model })
     }
 }
@@ -46,7 +42,7 @@ impl LlmClient for OpenAiCompatible {
         }
         let stream = async_stream::stream! {
             let mut bytes = response.bytes_stream();
-            let mut buffer = String::new();
+            let mut buffer: Vec<u8> = Vec::new();
             let mut done = false;
             loop {
                 let next = tokio::select! {
@@ -55,10 +51,15 @@ impl LlmClient for OpenAiCompatible {
                 };
                 match next {
                     Some(Ok(chunk)) => {
-                        buffer.push_str(&String::from_utf8_lossy(&chunk));
-                        while let Some(pos) = buffer.find('\n') {
-                            let line = buffer[..pos].trim_end_matches('\r').to_owned();
-                            buffer.drain(..=pos);
+                        buffer.extend_from_slice(&chunk);
+                        while let Some(pos) = buffer.iter().position(|byte| *byte == b'\n') {
+                            let mut line = buffer.drain(..=pos).collect::<Vec<_>>();
+                            line.pop(); // ASCII newline
+                            if line.last() == Some(&b'\r') { line.pop(); }
+                            let line = match String::from_utf8(line) {
+                                Ok(line) => line,
+                                Err(e) => { yield Err(LlmError(format!("Invalid SSE UTF-8: {e}"))); return; }
+                            };
                             let Some(payload) = line.strip_prefix("data:") else { continue };
                             let payload = payload.trim();
                             if payload == "[DONE]" { done = true; break; }
