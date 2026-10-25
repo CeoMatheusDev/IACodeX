@@ -12,6 +12,8 @@ export component AppWindow inherits Window {
     callback select-configured-model(string);
     callback create-workspace(string);
     callback record-session(string, string);
+    pure callback session-in-workspace(string, string) -> bool;
+    pure callback session-title(string, string) -> string;
     in-out property <[string]> workspaces: [];
     in-out property <[string]> session-entries: [];
     in-out property <bool> create-workspace-open: false;
@@ -129,12 +131,12 @@ export component AppWindow inherits Window {
                     workspace-row := TouchArea { clicked => { root.active-workspace = workspace; root.session-ready = false; root.has-session = false; root.prompt-text = ""; root.workspace-menu-open = false; } }
                 }
                 for entry in root.session-entries: Rectangle {
-                    height: entry.starts-with(root.active-workspace + "///") && root.active-workspace != "" ? 30px : 0px;
+                    height: root.session-in-workspace(entry, root.active-workspace) && root.active-workspace != "" ? 30px : 0px;
                     background: session-row.has-hover ? #313440 : transparent;
                     border-radius: 7px;
-                    Text { text: "    ↳  " + entry.replace(root.active-workspace + "///", ""); color: root.fg-muted; x: 14px; font-size: 12px; vertical-alignment: center; }
+                    Text { text: "    ↳  " + root.session-title(entry, root.active-workspace); color: root.fg-muted; x: 14px; font-size: 12px; vertical-alignment: center; }
                     session-row := TouchArea { clicked => {
-                        root.session-name = entry.replace(root.active-workspace + "///", "");
+                        root.session-name = root.session-title(entry, root.active-workspace);
                         root.has-session = true;
                         root.session-ready = true;
                     } }
