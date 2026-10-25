@@ -290,6 +290,85 @@ fn main() -> Result<(), slint::PlatformError> {
         }
     });
 
+    let weak_for_edit = app.as_weak();
+    app.on_edit_provider(move |name| {
+        let data = read_providers();
+        let Some((id, provider)) = data.get("providers").and_then(Value::as_object)
+            .and_then(|providers| providers.iter().find(|(_, p)| p.get("name").and_then(Value::as_str) == Some(name.as_str()))) else { return; };
+        if let Some(ui) = weak_for_edit.upgrade() {
+            ui.set_provider_id(id.as_str().into());
+            ui.set_provider_name(name);
+            ui.set_provider_url(provider.get("base_url").and_then(Value::as_str).unwrap_or("").into());
+            ui.set_provider_protocol(provider.get("api_protocol").and_then(Value::as_str).unwrap_or("OpenAI-compatible").into());
+            ui.set_provider_api_key("".into()); // Empty means retain existing secret on save.
+            ui.set_provider_custom(true);
+            ui.set_provider_model(provider.get("models").and_then(Value::as_array)
+                .and_then(|models| models.first()).and_then(|m| m.get("id")).and_then(Value::as_str).unwrap_or("").into());
+            ui.set_provider_model_added(true);
+            ui.set_discovered_models(ModelRc::from(Rc::new(VecModel::<slint::SharedString>::from(Vec::new()))));
+            ui.set_provider_status("Leave API key empty to keep the saved key.".into());
+            ui.set_provider_editor(true);
+        }
+    });
+
+    let weak_for_discovery = app.as_weak();
+    let discovery_handle = runtime.handle().clone();
+    app.on_fetch_provider_models(move |url, key, protocol| {
+        let url = url.to_string();
+        let mut key = key.to_string();
+        let protocol = protocol.to_string();
+        let weak = weak_for_discovery.clone();
+        if key.is_empty() {
+            let providers = read_providers();
+            if let Some(items) = providers.get("providers").and_then(Value::as_object) {
+                if let Some(provider) = items.values().find(|p| p.get("base_url").and_then(Value::as_str) == Some(url.as_str())) {
+                    key = provider.get("api_key").and_then(Value::as_str).unwrap_or("").to_string();
+                }
+            }
+        }
+        discovery_handle.spawn(async move {
+            let result: Result<Vec<String>, String> = async {
+                if protocol != "OpenAI-compatible" { return Err("Only OpenAI-compatible discovery is supported.".into()); }
+                if url.trim().is_empty() { return Err("Base URL is required.".into()); }
+                let endpoint = format!("{}/models", url.trim_end_matches('/'));
+                let http = reqwest::Client::builder().timeout(std::time::Duration::from_secs(15))
+                    .build().map_err(|e| e.to_string())?;
+                let mut request = http.get(endpoint);
+                if !key.is_empty() { request = request.bearer_auth(key); }
+                let response = request.send().await.map_err(|e| e.to_string())?;
+                let status = response.status();
+                if !status.is_success() { return Err(format!("HTTP {status}: {}", response.text().await.unwrap_or_default().chars().take(150).collect::<String>())); }
+                let json: Value = response.json().await.map_err(|e| e.to_string())?;
+                let mut ids = json.get("data").and_then(Value::as_array)
+                    .ok_or_else(|| "Response does not contain a data array.".to_string())?
+                    .iter().filter_map(|model| model.get("id").and_then(Value::as_str).map(str::to_owned))
+                    .collect::<Vec<_>>();
+                ids.sort();
+                ids.dedup();
+                if ids.is_empty() { return Err("Provider returned no models.".into()); }
+                Ok(ids)
+            }.await;
+            let _ = slint::invoke_from_event_loop(move || {
+                if let Some(ui) = weak.upgrade() {
+                    ui.set_provider_loading(false);
+                    match result {
+                        Ok(ids) => {
+                            ui.set_provider_health(1);
+                            ui.set_provider_status(format!("Connected: {} models available. Click a model to select.", ids.len()).into());
+                            ui.set_discovered_models(ModelRc::from(Rc::new(VecModel::<slint::SharedString>::from(
+                                ids.into_iter().map(Into::into).collect::<Vec<_>>()
+                            ))));
+                        }
+                        Err(error) => {
+                            ui.set_provider_health(2);
+                            ui.set_provider_status(format!("Connection failed: {error}").into());
+                        }
+                    }
+                }
+            });
+        });
+    });
+
     let models_for_create = model_list.clone();
     let weak = app.as_weak();
     app.on_create_provider(move |id, name, url, protocol, api_key, model_id, display, context, max_output| {
