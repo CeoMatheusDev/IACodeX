@@ -7,6 +7,10 @@ export component AppWindow inherits Window {
     background: root.bg-main;
     callback send-prompt(string);
     callback open-configuration-file();
+    in-out property <bool> provider-list-open: false;
+    in-out property <string> provider-api-key: "";
+    in-out property <string> provider-status: "";
+    in-out property <bool> provider-custom: false;
     callback save-settings(string, string, string, string, string, string, bool, bool, bool);
     in-out property <bool> plugin-shell: false;
     in-out property <bool> plugin-agent-loop: false;
@@ -409,27 +413,13 @@ export component AppWindow inherits Window {
                                         border-radius: 11px; border-width: 1px; border-color: #595963;
                                         background: #393940;
                                         Text { text: (root.pt ? "+ Adicionar provedor" : "+ Add provider"); color: #f0f0f4; font-size: 13px; horizontal-alignment: center; vertical-alignment: center; }
-                                        TouchArea { clicked => { root.provider-name = "DeepSeek"; root.provider-editor = true; } }
+                                        TouchArea { clicked => { root.provider-name = "DeepSeek"; root.provider-url = "https://api.deepseek.com"; root.provider-model = ""; root.provider-api-key = ""; root.provider-status = ""; root.provider-custom = false; root.provider-editor = true; } }
                                     }
                                     Rectangle {
                                         border-radius: 11px; border-width: 1px; border-color: #595963;
                                         background: #393940;
                                         Text { text: (root.pt ? "+ Criar provedor personalizado" : "+ Add a custom provider"); color: #f0f0f4; font-size: 13px; horizontal-alignment: center; vertical-alignment: center; }
-                                        TouchArea { clicked => { root.provider-name = ""; root.provider-editor = true; } }
-                                    }
-                                }
-                                if root.provider-editor: VerticalLayout {
-                                    spacing: 8px;
-                                    Text { text: (root.pt ? "Nome do provedor" : "Provider name"); color: #dedee5; font-size: 12px; }
-                                    LineEdit { text <=> root.provider-name; placeholder-text: (root.pt ? "Nome do provedor" : "Provider name"); }
-                                    Text { text: (root.pt ? "URL base (opcional)" : "Base URL (optional)"); color: #dedee5; font-size: 12px; }
-                                    LineEdit { text <=> root.provider-url; placeholder-text: "https://api.example.com/v1"; }
-                                    Text { text: (root.pt ? "ID do modelo (opcional)" : "Model ID (optional)"); color: #dedee5; font-size: 12px; }
-                                    LineEdit { text <=> root.provider-model; placeholder-text: "model-id"; }
-                                    Rectangle {
-                                        height: 38px; background: #465a83; border-radius: 9px;
-                                        Text { text: (root.pt ? "Salvar provedor" : "Save provider"); color: white; horizontal-alignment: center; vertical-alignment: center; }
-                                        TouchArea { clicked => { if root.provider-name != "" { root.settings-provider = root.provider-name; root.provider-editor = false; root.persist-settings(); } } }
+                                        TouchArea { clicked => { root.provider-name = ""; root.provider-url = ""; root.provider-model = ""; root.provider-api-key = ""; root.provider-status = ""; root.provider-custom = true; root.provider-editor = true; } }
                                     }
                                 }
                             }
