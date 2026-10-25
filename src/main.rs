@@ -2,6 +2,8 @@ slint::include_modules!();
 
 use std::{fs, path::PathBuf, process::Command};
 use serde_json::{json, Value};
+use slint::{ModelRc, VecModel};
+use std::rc::Rc;
 
 fn config_path() -> Option<PathBuf> {
     let base = std::env::var_os("XDG_CONFIG_HOME")
@@ -64,6 +66,8 @@ fn main() -> Result<(), slint::PlatformError> {
     let detected_dark = system_prefers_dark();
     let app = AppWindow::new()?;
     app.set_system_dark(detected_dark);
+    let model_list = Rc::new(VecModel::<slint::SharedString>::from(Vec::new()));
+    app.set_configured_models(ModelRc::from(model_list.clone()));
 
     if let Some(path) = config_path() {
         if let Some(settings) = read_config(&path) {
@@ -74,6 +78,20 @@ fn main() -> Result<(), slint::PlatformError> {
             if let Some(v) = string("appearance") { app.set_settings_appearance(v.into()); }
             if let Some(v) = string("enter") { app.set_settings_enter(v.into()); }
             if let Some(v) = string("provider") { app.set_settings_provider(v.into()); }
+            if let Some(provider) = settings.get("providers").and_then(Value::as_object) {
+                if let Some((_, details)) = provider.iter().next() {
+                    if let Some(name) = details.get("name").and_then(Value::as_str) {
+                        app.set_settings_provider(name.into());
+                    }
+                    if let Some(models) = details.get("models").and_then(Value::as_array) {
+                        for model in models {
+                            if let Some(id) = model.get("id").and_then(Value::as_str) {
+                                model_list.push(id.into());
+                            }
+                        }
+                    }
+                }
+            }
             if let Some(v) = settings.get("shell").and_then(Value::as_bool) { app.set_plugin_shell(v); }
             if let Some(v) = settings.get("agent_loop").and_then(Value::as_bool) { app.set_plugin_agent_loop(v); }
             if let Some(v) = settings.get("web_search").and_then(Value::as_bool) { app.set_plugin_web_search(v); }
@@ -81,13 +99,55 @@ fn main() -> Result<(), slint::PlatformError> {
     }
     app.on_save_settings(|mode, permission, language, appearance, enter, provider, shell, agent_loop, web_search| {
         let Some(path) = config_path() else { eprintln!("Cannot determine configuration directory"); return; };
-        let data = json!({
-            "mode": mode.as_str(), "permission": permission.as_str(),
-            "language": language.as_str(), "appearance": appearance.as_str(),
-            "enter": enter.as_str(), "provider": provider.as_str(),
-            "shell": shell, "agent_loop": agent_loop, "web_search": web_search
-        });
+        let mut data = read_config(&path).unwrap_or_else(|| json!({}));
+        if !data.is_object() { data = json!({}); }
+        data["mode"] = json!(mode.as_str());
+        data["permission"] = json!(permission.as_str());
+        data["language"] = json!(language.as_str());
+        data["appearance"] = json!(appearance.as_str());
+        data["enter"] = json!(enter.as_str());
+        data["provider"] = json!(provider.as_str());
+        data["shell"] = json!(shell);
+        data["agent_loop"] = json!(agent_loop);
+        data["web_search"] = json!(web_search);
         if let Err(error) = save_json(&path, &data) { eprintln!("Cannot save settings to {}: {error}", path.display()); }
+    });
+
+    app.on_model_matches(|model, search| model.to_lowercase().contains(&search.to_lowercase()));
+    let models_for_create = model_list.clone();
+    let weak = app.as_weak();
+    app.on_create_provider(move |id, name, url, protocol, _api_key, model_id, display, context, max_output| {
+        let Some(path) = config_path() else { return; };
+        let mut data = read_config(&path).unwrap_or_else(|| json!({}));
+        if !data.is_object() { data = json!({}); }
+        let key = if id.is_empty() { name.to_lowercase().replace(' ', "-") } else { id.to_string() };
+        let models = if model_id.is_empty() {
+            json!([])
+        } else {
+            json!([{ "id": model_id.as_str(), "display_name": display.as_str(),
+                "context_window": context.as_str(), "max_output_tokens": max_output.as_str(),
+                "supports_thinking": false }])
+        };
+        if !data.get("providers").map(Value::is_object).unwrap_or(false) {
+            data["providers"] = json!({});
+        }
+        data["providers"][&key] = json!({
+            "id": key, "name": name.as_str(), "base_url": url.as_str(),
+            "api_protocol": protocol.as_str(), "models": models
+        });
+        if let Err(error) = save_json(&path, &data) {
+            eprintln!("Cannot save provider: {error}");
+            return;
+        }
+        if !model_id.is_empty() {
+            let value: slint::SharedString = model_id.clone();
+            if !models_for_create.iter().any(|existing| existing == value) {
+                models_for_create.push(value);
+            }
+        }
+        if let Some(app) = weak.upgrade() {
+            if !model_id.is_empty() { app.set_active_model(model_id); }
+        }
     });
     app.on_open_configuration_file(|| {
         let Some(path) = config_path() else { eprintln!("Cannot determine configuration directory"); return; };
