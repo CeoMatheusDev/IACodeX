@@ -8,6 +8,7 @@ use serde_json::{json, Value};
 use slint::{Model, ModelRc, VecModel};
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
+use std::collections::HashMap;
 use tokio_util::sync::CancellationToken;
 use agent::{AgentConfig, AgentEvent, AgentLoop};
 use llm::openai_compatible::OpenAiCompatible;
@@ -324,6 +325,10 @@ fn main() -> Result<(), slint::PlatformError> {
         }
     });
 
+    type SharedAgent = Arc<tokio::sync::Mutex<AgentLoop<OpenAiCompatible>>>;
+    let agents: Arc<Mutex<HashMap<String, SharedAgent>>> =
+        Arc::new(Mutex::new(HashMap::new()));
+    let agents_for_send = Arc::clone(&agents);
     let active_cancel: Arc<Mutex<Option<CancellationToken>>> = Arc::new(Mutex::new(None));
     let cancel_for_button = Arc::clone(&active_cancel);
     app.on_cancel_prompt(move || {
@@ -338,6 +343,13 @@ fn main() -> Result<(), slint::PlatformError> {
     app.on_send_prompt(move |message| {
         let Some(ui) = weak_for_send.upgrade() else { return; };
         let selected_model = ui.get_active_model().to_string();
+        let workspace = ui.get_active_workspace().to_string();
+        let title = if ui.get_has_session() {
+            ui.get_session_name().to_string()
+        } else {
+            message.to_string()
+        };
+        let session_key = format!("{workspace}///{title}");
         let providers = read_providers();
         let selected = providers.get("providers").and_then(Value::as_object)
             .and_then(|items| items.values().find_map(|provider| {
@@ -372,24 +384,38 @@ fn main() -> Result<(), slint::PlatformError> {
             if let Some(previous) = guard.replace(token.clone()) { previous.cancel(); }
         }
         let weak = weak_for_send.clone();
+        let agents_for_task = Arc::clone(&agents_for_send);
         handle.spawn(async move {
-            let client = match OpenAiCompatible::new(&url, key, selected_model.clone()) {
-                Ok(client) => client,
-                Err(error) => {
-                    let _ = slint::invoke_from_event_loop(move || {
-                        if let Some(ui) = weak.upgrade() {
-                            ui.set_response_text(error.to_string().into());
-                            ui.set_is_streaming(false);
+            let agent = {
+                let mut map = match agents_for_task.lock() {
+                    Ok(map) => map,
+                    Err(_) => return,
+                };
+                if let Some(existing) = map.get(&session_key) {
+                    Arc::clone(existing)
+                } else {
+                    let client = match OpenAiCompatible::new(&url, key, selected_model.clone()) {
+                        Ok(client) => client,
+                        Err(error) => {
+                            let _ = slint::invoke_from_event_loop(move || {
+                                if let Some(ui) = weak.upgrade() {
+                                    ui.set_response_text(error.to_string().into());
+                                    ui.set_is_streaming(false);
+                                }
+                            });
+                            return;
                         }
-                    });
-                    return;
+                    };
+                    let created = Arc::new(tokio::sync::Mutex::new(AgentLoop::new(client, AgentConfig {
+                        model: selected_model,
+                        system_prompt: "Você é um assistente de código conciso.".into(),
+                        max_iterations: 1,
+                    })));
+                    map.insert(session_key, Arc::clone(&created));
+                    created
                 }
             };
-            let mut agent = AgentLoop::new(client, AgentConfig {
-                model: selected_model,
-                system_prompt: "Você é um assistente de código conciso.".into(),
-                max_iterations: 1,
-            });
+            let mut agent = agent.lock().await;
             let mut events = agent.run(message.to_string(), token).await;
             while let Some(event) = events.recv().await {
                 let weak = weak.clone();
