@@ -32,6 +32,7 @@ export component AppWindow inherits Window {
     in-out property <string> new-workspace-name: "";
     in-out property <bool> session-ready: false;
     in-out property <[string]> configured-models: [];
+    in-out property <[string]> configured-providers: [];
     in-out property <string> model-search: "";
     in-out property <bool> thinking-enabled: false;
     in-out property <bool> thinking-supported: false;
@@ -552,12 +553,12 @@ export component AppWindow inherits Window {
                                 spacing: 14px;
                                 Text { text: (root.pt ? "Modelos" : "Models"); color: root.fg-main; font-size: 19px; font-weight: 600; }
                                 Text { text: (root.pt ? "Adicione um provedor para configurar a API e os modelos." : "Add a provider to configure its API and available models."); color: root.fg-muted; font-size: 12px; }
-                                if root.settings-provider != "": Rectangle {
+                                for provider in root.configured-providers: Rectangle {
                                     height: 56px; background: root.bg-card; border-radius: 11px;
                                     border-width: 1px; border-color: root.outline;
                                     HorizontalLayout {
                                         padding: 12px; spacing: 8px;
-                                        Text { text: root.settings-provider; color: root.fg-main; font-size: 14px; vertical-alignment: center; }
+                                        Text { text: provider; color: root.fg-main; font-size: 14px; vertical-alignment: center; }
                                         Rectangle { horizontal-stretch: 1; background: transparent; }
                                         Rectangle { width: 12px; height: 12px; border-radius: 6px;
                                             background: root.provider-health == 1 ? #42cf77 : (root.provider-health == 2 ? #e85e61 : #e5ba4f);
@@ -566,7 +567,7 @@ export component AppWindow inherits Window {
                                         Rectangle {
                                             width: 54px; background: #414148; border-radius: 12px;
                                             Text { text: root.pt ? "Editar" : "Edit"; color: root.fg-main; font-size: 11px; horizontal-alignment: center; vertical-alignment: center; }
-                                            TouchArea { clicked => { root.edit-provider(root.settings-provider); } }
+                                            TouchArea { clicked => { root.edit-provider(provider); } }
                                         }
                                         Rectangle {
                                             width: 66px; background: #414148; border-radius: 12px;
@@ -575,7 +576,7 @@ export component AppWindow inherits Window {
                                         }
                                     }
                                 }
-                                if root.settings-provider == "": Rectangle {
+                                if root.configured-providers.length == 0: Rectangle {
                                     height: 170px; background: root.bg-card; border-radius: 12px;
                                     border-width: 1px; border-color: root.outline;
                                     VerticalLayout {
