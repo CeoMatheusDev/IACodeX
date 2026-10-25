@@ -213,7 +213,17 @@ fn main() -> Result<(), slint::PlatformError> {
         }
         sessions_for_record.push(format!("{workspace}///{title}").into());
     });
-    migrate_providers();
+    // One-time reset of previously stored providers. New providers persist normally.
+    if let Some(path) = providers_path() {
+        let marker = path.with_file_name("providers-reset-v1");
+        if !marker.exists() {
+            if let Err(error) = save_json(&path, &json!({"providers": {}})) {
+                eprintln!("Cannot reset old providers: {error}");
+            } else if let Err(error) = fs::write(&marker, b"done") {
+                eprintln!("Cannot mark provider reset complete: {error}");
+            }
+        }
+    }
     let model_list = Rc::new(VecModel::<slint::SharedString>::from(Vec::new()));
     app.set_configured_models(ModelRc::from(model_list.clone()));
 
