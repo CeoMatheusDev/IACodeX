@@ -347,7 +347,7 @@ fn main() -> Result<(), slint::PlatformError> {
                 let http = reqwest::Client::builder().timeout(std::time::Duration::from_secs(15))
                     .build().map_err(|e| e.to_string())?;
                 let mut request = http.get(endpoint);
-                if !key.is_empty() { request = request.bearer_auth(key); }
+                if !key.is_empty() { request = request.bearer_auth(&key); }
                 let response = request.send().await.map_err(|e| e.to_string())?;
                 let status = response.status();
                 if !status.is_success() { return Err(format!("HTTP {status}: {}", response.text().await.unwrap_or_default().chars().take(150).collect::<String>())); }
