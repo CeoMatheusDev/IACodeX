@@ -10,7 +10,7 @@ fn config_path() -> Option<PathBuf> {
 }
 
 fn clean(value: &str) -> String {
-    value.replace(['\n', '\r', '='], " ")
+    value.replace('\n', " ").replace('\r', " ").replace('=', " ")
 }
 
 fn main() -> Result<(), slint::PlatformError> {
