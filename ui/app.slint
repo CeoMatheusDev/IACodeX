@@ -7,6 +7,12 @@ export component AppWindow inherits Window {
     background: root.bg-main;
     callback send-prompt(string);
     callback open-configuration-file();
+    callback create-provider(string, string, string, string, string, string, string, string, string);
+    callback model-matches(string, string) -> bool;
+    in-out property <[string]> configured-models: [];
+    in-out property <string> model-search: "";
+    in-out property <bool> thinking-enabled: false;
+    in-out property <bool> thinking-supported: false;
     in-out property <bool> provider-list-open: false;
     in-out property <string> provider-api-key: "";
     in-out property <string> provider-status: "";
@@ -49,7 +55,7 @@ export component AppWindow inherits Window {
     in-out property <string> prompt-text: "";
     in-out property <string> active-workspace: "VorynOS";
     in-out property <string> active-mode: "Standard mode";
-    in-out property <string> active-model: "deepseek-v4-flash:free";
+    in-out property <string> active-model: "";
     in-out property <bool> show-sidebar: true;
     in-out property <bool> has-session: false;
     in-out property <bool> workspace-open: true;
@@ -223,7 +229,7 @@ export component AppWindow inherits Window {
                                     Rectangle {
                                         width: 188px;
                                         background: #00000000;
-                                        Text { text: root.active-model + " ⌄"; color: #d3d4db; font-size: 12px; horizontal-alignment: right; vertical-alignment: center; }
+                                        Text { text: (root.active-model == "" ? (root.pt ? "Selecionar modelo" : "Select model") : root.active-model) + " ⌄"; color: #d3d4db; font-size: 12px; horizontal-alignment: right; vertical-alignment: center; }
                                         TouchArea { clicked => { root.model-open = !root.model-open; } }
                                     }
                                     Rectangle {
@@ -247,9 +253,33 @@ export component AppWindow inherits Window {
                             }
                         }
                         if root.model-open: Rectangle {
-                            height: 30px; background: #2b2b30; border-radius: 6px;
-                            Text { text: "deepseek-v4-flash:free   /   Custom model"; color: root.fg-main; horizontal-alignment: center; vertical-alignment: center; }
-                            TouchArea { clicked => { root.active-model = root.active-model == "deepseek-v4-flash:free" ? "Custom model" : "deepseek-v4-flash:free"; root.model-open = false; } }
+                            height: 214px; background: root.bg-panel; border-radius: 10px; border-width: 1px; border-color: root.outline;
+                            VerticalLayout {
+                                padding: 10px; spacing: 7px;
+                                Text { text: root.pt ? "Selecionar modelo" : "Select model"; color: root.fg-main; font-size: 14px; font-weight: 600; }
+                                LineEdit { text <=> root.model-search; placeholder-text: root.pt ? "Buscar modelos..." : "Search models..."; }
+                                ScrollView {
+                                    VerticalLayout {
+                                        spacing: 4px;
+                                        for model in root.configured-models: Rectangle {
+                                            height: root.model-matches(model, root.model-search) ? 32px : 0px;
+                                            background: root.active-model == model ? #465a83 : root.bg-card;
+                                            border-radius: 6px;
+                                            Text { text: model; color: root.fg-main; x: 10px; vertical-alignment: center; font-size: 12px; }
+                                            TouchArea { clicked => { root.active-model = model; root.model-open = false; root.thinking-enabled = false; } }
+                                        }
+                                        if root.configured-models.length == 0: Text {
+                                            text: root.pt ? "Adicione modelos em Settings → Models" : "Add models in Settings → Models";
+                                            color: root.fg-muted; font-size: 12px;
+                                        }
+                                    }
+                                }
+                                if root.thinking-supported: Rectangle {
+                                    height: 30px; background: root.bg-card; border-radius: 6px;
+                                    Text { text: (root.pt ? "Pensamento" : "Thinking") + (root.thinking-enabled ? "  ON" : "  OFF"); color: root.fg-main; x: 10px; vertical-alignment: center; }
+                                    TouchArea { clicked => { root.thinking-enabled = !root.thinking-enabled; } }
+                                }
+                            }
                         }
                         if root.access-open: Rectangle {
                             height: 30px; background: #2b2b30; border-radius: 6px;
@@ -644,7 +674,7 @@ export component AppWindow inherits Window {
                         TouchArea { clicked => {
                             if root.provider-name != "" && root.provider-url != "" && (!root.provider-custom || root.provider-id != "") {
                                 root.settings-provider = root.provider-name;
-                                root.active-model = root.provider-model != "" ? root.provider-model : root.active-model;
+                                root.create-provider(root.provider-id, root.provider-name, root.provider-url, root.provider-protocol, root.provider-api-key, root.provider-model, root.provider-model-display, root.provider-model-context, root.provider-model-max-output);
                                 root.provider-editor = false;
                                 root.provider-list-open = false;
                                 root.persist-settings();
