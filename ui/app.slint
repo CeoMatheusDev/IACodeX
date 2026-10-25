@@ -32,7 +32,7 @@ export component AppWindow inherits Window {
                 HorizontalLayout {
                     height: 42px;
                     spacing: 7px;
-                    Text { text: "◈"; color: #f6f6f8; font-size: 25px; }
+                    Text { text: "◆"; color: #8ea9e8; font-size: 22px; }
                     Text { text: "IACodeX"; color: #f5f5f7; font-size: 19px; font-weight: 700; }
                     Rectangle {
                         width: 54px;
@@ -42,7 +42,7 @@ export component AppWindow inherits Window {
                         Text { text: "DESKTOP"; color: #232327; font-size: 8px; horizontal-alignment: center; vertical-alignment: center; }
                     }
                     Rectangle { horizontal-stretch: 1; background: #00000000; }
-                    Text { text: "◧"; color: #c2c4ca; font-size: 19px; }
+                    Text { text: "Hide"; color: #b8bed0; font-size: 12px; vertical-alignment: center; }
                     TouchArea { width: 20px; clicked => { root.show-sidebar = false; } }
                 }
                 Rectangle { height: 15px; background: #00000000; }
@@ -52,7 +52,7 @@ export component AppWindow inherits Window {
                     border-color: #55565e;
                     border-width: 1px;
                     border-radius: 12px;
-                    HorizontalLayout { padding-left: 14px; spacing: 10px; Image { source: @image-url("../adicionar.png"); width: 17px; height: 17px; image-fit: contain; } Text { text: "New Session"; color: #e8e9ec; vertical-alignment: center; font-size: 14px; } Rectangle { horizontal-stretch: 1; background: transparent; } }
+                    Text { text: "New Session"; color: #f1f2f6; horizontal-alignment: center; vertical-alignment: center; font-size: 14px; font-weight: 600; }
                     new-session-touch := TouchArea { clicked => { root.has-session = false; root.prompt-text = ""; root.session-name = "New Session"; } }
                 }
                 Rectangle { height: 15px; background: #00000000; }
@@ -64,21 +64,20 @@ export component AppWindow inherits Window {
                 }
                 Rectangle {
                     height: 48px;
-                    background: #202023;
+                    background: #252832;
                     border-radius: 10px;
-                    HorizontalLayout {
-                        padding-left: 12px;
-                        padding-right: 12px;
-                        spacing: 10px;
-                        Image { source: @image-url("../add-project.png"); width: 19px; height: 19px; image-fit: contain; }
-                        Text { text: "No projects yet"; color: #999ba5; font-size: 13px; vertical-alignment: center; } Rectangle { horizontal-stretch: 1; background: transparent; }
-                    }
+                    border-width: 1px;
+                    border-color: #39445c;
+                    Text { text: "No projects yet"; color: #b9c9e9; font-size: 13px; horizontal-alignment: center; vertical-alignment: center; }
                 }
                                 Rectangle { vertical-stretch: 1; background: #00000000; }
                 Rectangle {
                     height: 42px;
-                    background: #00000000;
-                    HorizontalLayout { padding-left: 8px; spacing: 10px; Image { source: @image-url("../setting.png"); width: 19px; height: 19px; image-fit: contain; } Text { text: "Settings"; color: #e0e1e6; vertical-alignment: center; font-size: 14px; } Rectangle { horizontal-stretch: 1; background: transparent; } }
+                    background: #303847;
+                    border-radius: 10px;
+                    border-width: 1px;
+                    border-color: #465675;
+                    Text { text: "Settings"; color: #dce5f8; horizontal-alignment: center; vertical-alignment: center; font-size: 14px; }
                 }
             }
         }
@@ -104,7 +103,7 @@ export component AppWindow inherits Window {
                             height: 48px;
                             alignment: center;
                             spacing: 10px;
-                            Text { text: "◈"; color: #a9baf5; font-size: 29px; vertical-alignment: center; }
+                            
                             Text { text: root.has-session ? root.session-name : "Into the Unknown"; color: #f0f0f3; font-size: 24px; vertical-alignment: center; }
                             Rectangle {
                                 width: 66px;
@@ -121,14 +120,20 @@ export component AppWindow inherits Window {
                             spacing: 16px;
                             Rectangle {
                                 width: 160px;
-                                background: #00000000;
-                                HorizontalLayout { spacing: 8px; Image { source: @image-url("../project.png"); width: 16px; height: 16px; image-fit: contain; } Text { text: root.active-workspace + " ⌄"; color: #d6d7dd; font-size: 13px; vertical-alignment: center; } Rectangle { horizontal-stretch: 1; background: transparent; } }
+                                background: #303847;
+                                border-radius: 8px;
+                                border-width: 1px;
+                                border-color: #465675;
+                                Text { text: root.active-workspace + " ⌄"; color: #dfe8fa; font-size: 13px; horizontal-alignment: center; vertical-alignment: center; }
                                 TouchArea { clicked => { root.workspace-menu-open = !root.workspace-menu-open; } }
                             }
                             Rectangle {
                                 width: 165px;
-                                background: #00000000;
-                                Text { text: "♧  " + root.active-mode + " ⌄"; color: #d6d7dd; font-size: 13px; vertical-alignment: center; }
+                                background: #303039;
+                                border-radius: 8px;
+                                border-width: 1px;
+                                border-color: #454550;
+                                Text { text: root.active-mode + " ⌄"; color: #e0e1e8; font-size: 13px; horizontal-alignment: center; vertical-alignment: center; }
                                 TouchArea { clicked => { root.mode-open = !root.mode-open; } }
                             }
                             Rectangle { horizontal-stretch: 1; background: #00000000; }
@@ -165,7 +170,7 @@ export component AppWindow inherits Window {
                                         height: 30px;
                                         background: #38383b;
                                         border-radius: 15px;
-                                        Image { source: @image-url("../adicionar-arquivo.png"); width: 20px; height: 20px; x: (parent.width - self.width) / 2; y: (parent.height - self.height) / 2; image-fit: contain; }
+                                        Text { text: "+"; color: #e9eaf1; font-size: 22px; horizontal-alignment: center; vertical-alignment: center; }
                                     }
                                     Rectangle {
                                         width: 130px;
