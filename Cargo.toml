@@ -1,0 +1,11 @@
+[package]
+name = "iacodex"
+version = "0.1.0"
+edition = "2021"
+build = "build.rs"
+
+[dependencies]
+slint = { version = "1.14", default-features = false, features = ["std", "backend-winit", "renderer-femtovg", "compat-1-2"] }
+
+[build-dependencies]
+slint-build = "1.14"

@@ -1,0 +1,245 @@
+import { VerticalBox, HorizontalBox, LineEdit, ScrollView } from "std-widgets.slint";
+
+export component AppWindow inherits Window {
+    title: "IACodeX — Into the Unknown";
+    width: 1280px;
+    height: 726px;
+    background: #141416;
+    callback send-prompt(string);
+    in-out property <string> prompt-text: "";
+    in-out property <string> active-workspace: "VorynOS";
+    in-out property <string> active-mode: "Standard mode";
+    in-out property <string> active-model: "deepseek-v4-flash:free";
+    in-out property <bool> show-sidebar: true;
+    in-out property <bool> has-session: false;
+    in-out property <bool> workspace-open: true;
+    in-out property <bool> model-open: false;
+    in-out property <bool> mode-open: false;
+    in-out property <bool> access-open: false;
+    in-out property <bool> workspace-menu-open: false;
+    in-out property <string> session-name: "New Session";
+
+    HorizontalLayout {
+        spacing: 0px;
+        if root.show-sidebar: Rectangle {
+            width: 282px;
+            background: #1b1b1d;
+            border-width: 1px;
+            border-color: #27272b;
+            VerticalLayout {
+                padding: 16px;
+                spacing: 0px;
+                HorizontalLayout {
+                    height: 42px;
+                    spacing: 7px;
+                    Text { text: "◈"; color: #f6f6f8; font-size: 25px; }
+                    Text { text: "deepseek"; color: #f5f5f7; font-size: 19px; font-weight: 700; }
+                    Rectangle {
+                        width: 54px;
+                        height: 15px;
+                        background: #e6e7eb;
+                        border-radius: 2px;
+                        Text { text: "HARNESS"; color: #232327; font-size: 9px; horizontal-alignment: center; vertical-alignment: center; }
+                    }
+                    Rectangle { horizontal-stretch: 1; background: #00000000; }
+                    Text { text: "◧"; color: #c2c4ca; font-size: 19px; }
+                    TouchArea { width: 20px; clicked => { root.show-sidebar = false; } }
+                }
+                Rectangle { height: 15px; background: #00000000; }
+                Rectangle {
+                    height: 38px;
+                    background: new-session-touch.has-hover ? #505158 : #424349;
+                    border-color: #55565e;
+                    border-width: 1px;
+                    border-radius: 12px;
+                    Text { text: "⊕  New Session"; color: #e8e9ec; horizontal-alignment: center; vertical-alignment: center; font-size: 14px; }
+                    new-session-touch := TouchArea { clicked => { root.has-session = false; root.prompt-text = ""; root.session-name = "New Session"; } }
+                }
+                Rectangle { height: 15px; background: #00000000; }
+                HorizontalLayout {
+                    height: 34px;
+                    Text { text: "Workspaces"; color: #a7a8b0; font-size: 14px; vertical-alignment: center; }
+                    Rectangle { horizontal-stretch: 1; background: #00000000; }
+                    Text { text: "⌕     ☷     ⊞"; color: #d0d1d7; font-size: 19px; vertical-alignment: center; }
+                }
+                Rectangle { height: 8px; background: #00000000; }
+                Rectangle {
+                    height: 35px;
+                    background: #00000000;
+                    Text { text: root.workspace-open ? "▱  VorynOS" : "▹  VorynOS"; color: #d8d9e0; font-size: 14px; vertical-alignment: center; x: 6px; }
+                    TouchArea { clicked => { root.workspace-open = !root.workspace-open; root.active-workspace = "VorynOS"; } }
+                }
+                if root.workspace-open: VerticalLayout {
+                    spacing: 2px;
+                    Rectangle {
+                        height: 34px;
+                        border-radius: 8px;
+                        background: #2b2b2e;
+                        Text { text: "New Session"; color: #e7e7ea; x: 27px; vertical-alignment: center; font-size: 14px; }
+                        TouchArea { clicked => { root.has-session = false; root.session-name = "New Session"; } }
+                    }
+                    Rectangle {
+                        height: 32px;
+                        background: #00000000;
+                        Text { text: "◌  Continue OS Development …"; color: #d4d4da; x: 10px; vertical-alignment: center; font-size: 13px; }
+                        Text { text: "17min"; color: #9698a1; horizontal-alignment: right; vertical-alignment: center; x: 211px; width: 40px; font-size: 11px; }
+                        TouchArea { clicked => { root.has-session = true; root.session-name = "Continue OS Development"; } }
+                    }
+                    Rectangle {
+                        height: 32px;
+                        background: #00000000;
+                        Text { text: "VorynOS"; color: #d4d4da; x: 27px; vertical-alignment: center; font-size: 13px; }
+                        Text { text: "2h"; color: #9698a1; horizontal-alignment: right; vertical-alignment: center; x: 224px; width: 27px; font-size: 11px; }
+                        TouchArea { clicked => { root.has-session = true; root.session-name = "VorynOS"; } }
+                    }
+                }
+                Rectangle {
+                    height: 36px;
+                    background: #00000000;
+                    Text { text: "▱  Ungrouped"; color: #d4d4da; x: 6px; vertical-alignment: center; font-size: 14px; }
+                    TouchArea { clicked => { root.active-workspace = "Ungrouped"; } }
+                }
+                Rectangle { vertical-stretch: 1; background: #00000000; }
+                Rectangle {
+                    height: 36px;
+                    background: #00000000;
+                    Text { text: "⚙  Settings"; color: #e0e1e6; vertical-alignment: center; font-size: 14px; }
+                }
+            }
+        }
+        Rectangle {
+            background: #141416;
+            VerticalLayout {
+                padding: 0px;
+                spacing: 0px;
+                if !root.show-sidebar: Rectangle {
+                    height: 40px;
+                    background: #00000000;
+                    Text { text: "☰"; color: #dddde3; x: 18px; vertical-alignment: center; font-size: 22px; }
+                    TouchArea { clicked => { root.show-sidebar = true; } }
+                }
+                Rectangle { vertical-stretch: 1; background: #00000000; }
+                HorizontalLayout {
+                    spacing: 0px;
+                    Rectangle { horizontal-stretch: 1; background: #00000000; }
+                    VerticalLayout {
+                        width: min(780px, root.width - (root.show-sidebar ? 342px : 60px));
+                        spacing: 16px;
+                        HorizontalLayout {
+                            height: 48px;
+                            alignment: center;
+                            spacing: 10px;
+                            Text { text: "◈"; color: #f2f2f5; font-size: 31px; vertical-alignment: center; }
+                            Text { text: root.has-session ? root.session-name : "Into the Unknown"; color: #f0f0f3; font-size: 25px; vertical-alignment: center; }
+                            Rectangle {
+                                width: 66px;
+                                height: 22px;
+                                background: #344058;
+                                border-color: #465470;
+                                border-width: 1px;
+                                border-radius: 12px;
+                                Text { text: "Preview"; color: #dce3f6; font-size: 11px; horizontal-alignment: center; vertical-alignment: center; }
+                            }
+                        }
+                        HorizontalLayout {
+                            height: 28px;
+                            spacing: 16px;
+                            Rectangle {
+                                width: 100px;
+                                background: #00000000;
+                                Text { text: "▱  " + root.active-workspace + " ⌄"; color: #d6d7dd; font-size: 13px; vertical-alignment: center; }
+                                TouchArea { clicked => { root.workspace-menu-open = !root.workspace-menu-open; } }
+                            }
+                            Rectangle {
+                                width: 150px;
+                                background: #00000000;
+                                Text { text: "♧  " + root.active-mode + " ⌄"; color: #d6d7dd; font-size: 13px; vertical-alignment: center; }
+                                TouchArea { clicked => { root.mode-open = !root.mode-open; } }
+                            }
+                            Rectangle { horizontal-stretch: 1; background: #00000000; }
+                        }
+                        if root.workspace-menu-open: Rectangle {
+                            height: 30px; background: #2b2b30; border-radius: 6px;
+                            Text { text: "VorynOS       /       Ungrouped"; color: #ededf0; vertical-alignment: center; horizontal-alignment: center; }
+                            TouchArea { clicked => { root.active-workspace = root.active-workspace == "VorynOS" ? "Ungrouped" : "VorynOS"; root.workspace-menu-open = false; } }
+                        }
+                        if root.mode-open: Rectangle {
+                            height: 30px; background: #2b2b30; border-radius: 6px;
+                            Text { text: "Standard mode       /       Plan mode"; color: #ededf0; vertical-alignment: center; horizontal-alignment: center; }
+                            TouchArea { clicked => { root.active-mode = root.active-mode == "Standard mode" ? "Plan mode" : "Standard mode"; root.mode-open = false; } }
+                        }
+                        Rectangle {
+                            height: 118px;
+                            background: #2b2b2e;
+                            border-radius: 22px;
+                            border-width: 1px;
+                            border-color: #39393e;
+                            VerticalLayout {
+                                padding: 9px;
+                                spacing: 4px;
+                                LineEdit {
+                                    text <=> root.prompt-text;
+                                    placeholder-text: "Describe what you want to build";
+                                    height: 62px;
+                                    font-size: 15px;
+                                }
+                                HorizontalLayout {
+                                    spacing: 8px;
+                                    Rectangle {
+                                        width: 30px;
+                                        height: 30px;
+                                        background: #38383b;
+                                        border-radius: 15px;
+                                        Text { text: "+"; color: #d1d2d8; font-size: 23px; horizontal-alignment: center; vertical-alignment: center; }
+                                    }
+                                    Rectangle {
+                                        width: 130px;
+                                        background: #00000000;
+                                        Text { text: "♢ Full access ⌄"; color: #d3d4db; font-size: 13px; vertical-alignment: center; }
+                                        TouchArea { clicked => { root.access-open = !root.access-open; } }
+                                    }
+                                    Rectangle { horizontal-stretch: 1; background: #00000000; }
+                                    Rectangle {
+                                        width: 174px;
+                                        background: #00000000;
+                                        Text { text: root.active-model + " ⌄"; color: #d3d4db; font-size: 12px; horizontal-alignment: right; vertical-alignment: center; }
+                                        TouchArea { clicked => { root.model-open = !root.model-open; } }
+                                    }
+                                    Rectangle {
+                                        width: 34px;
+                                        height: 34px;
+                                        background: send-area.has-hover ? #536fa4 : #425e91;
+                                        border-radius: 17px;
+                                        Text { text: "↑"; color: #d3dce9; font-size: 22px; horizontal-alignment: center; vertical-alignment: center; }
+                                        send-area := TouchArea {
+                                            clicked => {
+                                                if root.prompt-text != "" {
+                                                    root.send-prompt(root.prompt-text);
+                                                    root.session-name = root.prompt-text;
+                                                    root.has-session = true;
+                                                    root.prompt-text = "";
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        if root.model-open: Rectangle {
+                            height: 30px; background: #2b2b30; border-radius: 6px;
+                            Text { text: "deepseek-v4-flash:free   /   Custom model"; color: #ededf0; horizontal-alignment: center; vertical-alignment: center; }
+                            TouchArea { clicked => { root.active-model = root.active-model == "deepseek-v4-flash:free" ? "Custom model" : "deepseek-v4-flash:free"; root.model-open = false; } }
+                        }
+                        if root.access-open: Rectangle {
+                            height: 30px; background: #2b2b30; border-radius: 6px;
+                            Text { text: "Full access (visual only — no system permissions)"; color: #ededf0; horizontal-alignment: center; vertical-alignment: center; }
+                            TouchArea { clicked => { root.access-open = false; } }
+                        }
+                    }
+                    Rectangle { horizontal-stretch: 1; background: #00000000; }
+                }
+                Rectangle { vertical-stretch: 1.4; background: #00000000; }
+            }
+        }
+    }
+}

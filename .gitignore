@@ -1,0 +1,25 @@
+# Rust
+/target/
+**/*.rs.bk
+
+# Temporários
+*.log
+*.tmp
+*.bak
+*.swp
+*~
+
+# IDE
+.idea/
+.vscode/
+
+# Credenciais
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Arquivos compactados
+*.zip
+*.tar.gz
