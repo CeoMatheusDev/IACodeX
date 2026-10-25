@@ -6,6 +6,13 @@ export component AppWindow inherits Window {
     height: 726px;
     background: #141416;
     callback send-prompt(string);
+    in-out property <bool> settings-open: false;
+    in-out property <int> settings-tab: 0;
+    in-out property <string> settings-language: "English";
+    in-out property <string> settings-appearance: "System";
+    in-out property <string> settings-enter: "Queue";
+    in-out property <string> settings-permission: "Full access";
+    in-out property <string> settings-provider: "";
     in-out property <string> prompt-text: "";
     in-out property <string> active-workspace: "VorynOS";
     in-out property <string> active-mode: "Standard mode";
@@ -78,6 +85,7 @@ export component AppWindow inherits Window {
                     border-width: 1px;
                     border-color: #465675;
                     Text { text: "Settings"; color: #dce5f8; horizontal-alignment: center; vertical-alignment: center; font-size: 14px; }
+                    TouchArea { clicked => { root.settings-tab = 0; root.settings-open = true; } }
                 }
             }
         }
@@ -222,4 +230,192 @@ export component AppWindow inherits Window {
             }
         }
     }
+    if root.settings-open: Rectangle {
+        background: #08080bc9;
+        TouchArea { clicked => { root.settings-open = false; } }
+        Rectangle {
+            width: min(800px, parent.width - 48px);
+            height: min(678px, parent.height - 48px);
+            x: (parent.width - self.width) / 2;
+            y: (parent.height - self.height) / 2;
+            background: #2b2b2e;
+            border-radius: 22px;
+            border-width: 1px;
+            border-color: #414146;
+            TouchArea { }
+            VerticalLayout {
+                padding: 22px;
+                spacing: 18px;
+                HorizontalLayout {
+                    height: 28px;
+                    Text { text: "Settings"; color: #f3f3f6; font-size: 17px; vertical-alignment: center; }
+                    Rectangle { horizontal-stretch: 1; background: transparent; }
+                    Rectangle {
+                        width: 175px; background: #343439; border-radius: 14px;
+                        Text { text: "Configuration (preview)"; color: #c5c5ce; font-size: 11px; horizontal-alignment: center; vertical-alignment: center; }
+                    }
+                    Rectangle {
+                        width: 34px; background: transparent;
+                        Text { text: "×"; color: #ededf2; font-size: 25px; horizontal-alignment: center; vertical-alignment: center; }
+                        TouchArea { clicked => { root.settings-open = false; } }
+                    }
+                }
+                HorizontalLayout {
+                    spacing: 24px;
+                    VerticalLayout {
+                        width: 164px;
+                        spacing: 6px;
+                        for item[i] in ["General", "Models", "Plugins", "Agent presets"]: Rectangle {
+                            height: 40px;
+                            border-radius: 9px;
+                            background: root.settings-tab == i ? #45464c : transparent;
+                            Text { text: item; x: 13px; color: root.settings-tab == i ? #ffffff : #d4d4da; font-size: 14px; vertical-alignment: center; }
+                            TouchArea { clicked => { root.settings-tab = i; } }
+                        }
+                        Rectangle { vertical-stretch: 1; background: transparent; }
+                    }
+                    Rectangle {
+                        background: transparent;
+                        VerticalLayout {
+                            spacing: 12px;
+                            if root.settings-tab == 0: VerticalLayout {
+                                spacing: 13px;
+                                Text { text: "General"; color: #f3f3f6; font-size: 19px; font-weight: 600; }
+                                Text { text: "Default settings for new sessions"; color: #a9a9b3; font-size: 12px; }
+                                Rectangle {
+                                    height: 67px; background: #323236; border-radius: 10px;
+                                    HorizontalLayout {
+                                        padding: 12px; spacing: 8px;
+                                        VerticalLayout {
+                                            Text { text: "Agent preset"; color: #eeeeef; font-size: 14px; }
+                                            Text { text: "Choose the default agent mode"; color: #a7a7b0; font-size: 12px; }
+                                        }
+                                        Rectangle { horizontal-stretch: 1; background: transparent; }
+                                        Rectangle {
+                                            width: 145px; background: #414148; border-radius: 18px;
+                                            Text { text: root.active-mode + " ⌄"; color: #f1f1f4; horizontal-alignment: center; vertical-alignment: center; font-size: 12px; }
+                                            TouchArea { clicked => { root.active-mode = root.active-mode == "Standard mode" ? "Plan mode" : "Standard mode"; } }
+                                        }
+                                    }
+                                }
+                                Rectangle {
+                                    height: 67px; background: #323236; border-radius: 10px;
+                                    HorizontalLayout {
+                                        padding: 12px; spacing: 8px;
+                                        VerticalLayout {
+                                            Text { text: "Permission"; color: #eeeeef; font-size: 14px; }
+                                            Text { text: "Default permission level"; color: #a7a7b0; font-size: 12px; }
+                                        }
+                                        Rectangle { horizontal-stretch: 1; background: transparent; }
+                                        Rectangle {
+                                            width: 145px; background: #414148; border-radius: 18px;
+                                            Text { text: root.settings-permission + " ⌄"; color: #f1f1f4; horizontal-alignment: center; vertical-alignment: center; font-size: 12px; }
+                                            TouchArea { clicked => { root.settings-permission = root.settings-permission == "Full access" ? "Ask first" : "Full access"; } }
+                                        }
+                                    }
+                                }
+                                Rectangle {
+                                    height: 56px; background: #323236; border-radius: 10px;
+                                    HorizontalLayout {
+                                        padding: 12px;
+                                        Text { text: "Language"; color: #eeeeef; font-size: 14px; vertical-alignment: center; }
+                                        Rectangle { horizontal-stretch: 1; background: transparent; }
+                                        Rectangle {
+                                            width: 145px; background: #414148; border-radius: 18px;
+                                            Text { text: root.settings-language + " ⌄"; color: #f1f1f4; horizontal-alignment: center; vertical-alignment: center; font-size: 12px; }
+                                            TouchArea { clicked => { root.settings-language = root.settings-language == "English" ? "Português" : "English"; } }
+                                        }
+                                    }
+                                }
+                                Text { text: "Appearance"; color: #eeeeef; font-size: 14px; }
+                                HorizontalLayout {
+                                    height: 82px; spacing: 9px;
+                                    for theme in ["Light", "Dark", "System"]: Rectangle {
+                                        border-radius: 12px;
+                                        border-width: 1px;
+                                        border-color: root.settings-appearance == theme ? #9da7c4 : #4b4b51;
+                                        background: root.settings-appearance == theme ? #414149 : #333337;
+                                        Text { text: theme; color: #eeeeef; font-size: 14px; horizontal-alignment: center; vertical-alignment: center; }
+                                        TouchArea { clicked => { root.settings-appearance = theme; } }
+                                    }
+                                }
+                                Rectangle {
+                                    height: 62px; background: #323236; border-radius: 10px;
+                                    HorizontalLayout {
+                                        padding: 12px;
+                                        Text { text: "Enter behavior while busy"; color: #eeeeef; font-size: 13px; vertical-alignment: center; }
+                                        Rectangle { horizontal-stretch: 1; background: transparent; }
+                                        Rectangle {
+                                            width: 120px; background: #414148; border-radius: 18px;
+                                            Text { text: root.settings-enter + " ⌄"; color: #f1f1f4; horizontal-alignment: center; vertical-alignment: center; font-size: 12px; }
+                                            TouchArea { clicked => { root.settings-enter = root.settings-enter == "Queue" ? "Send" : "Queue"; } }
+                                        }
+                                    }
+                                }
+                            }
+                            if root.settings-tab == 1: VerticalLayout {
+                                spacing: 12px;
+                                Text { text: "Models"; color: #f3f3f6; font-size: 19px; font-weight: 600; }
+                                Text { text: "Manage AI providers (configuration preview)."; color: #aaaaaf; font-size: 12px; }
+                                for provider in ["DeepSeek", "OpenRouter", "Custom provider"]: Rectangle {
+                                    height: 54px; background: #323236; border-radius: 11px;
+                                    border-width: 1px; border-color: #48484e;
+                                    HorizontalLayout {
+                                        padding: 12px;
+                                        Text { text: provider; color: #f2f2f4; font-size: 14px; vertical-alignment: center; }
+                                        Rectangle { horizontal-stretch: 1; background: transparent; }
+                                        Rectangle {
+                                            width: 62px; background: #424249; border-radius: 13px;
+                                            Text { text: "Edit"; color: #eeeeef; font-size: 12px; horizontal-alignment: center; vertical-alignment: center; }
+                                            TouchArea { clicked => { root.settings-provider = provider; } }
+                                        }
+                                    }
+                                }
+                                if root.settings-provider != "": Rectangle {
+                                    height: 48px; background: #3a3b45; border-radius: 9px;
+                                    Text { text: root.settings-provider + ": API configuration coming soon"; color: #cdd6ed; font-size: 12px; horizontal-alignment: center; vertical-alignment: center; }
+                                }
+                                Rectangle {
+                                    height: 44px; background: #373740; border-radius: 10px;
+                                    Text { text: "+ Add provider (coming soon)"; color: #c7c7d2; horizontal-alignment: center; vertical-alignment: center; font-size: 13px; }
+                                }
+                            }
+                            if root.settings-tab == 2: VerticalLayout {
+                                spacing: 12px;
+                                Text { text: "Plugins"; color: #f3f3f6; font-size: 19px; font-weight: 600; }
+                                Text { text: "Available plugin categories (preview)."; color: #aaaaaf; font-size: 12px; }
+                                for plugin in ["Shell", "Agent loop", "Web search"]: Rectangle {
+                                    height: 74px; background: #343438; border-radius: 12px;
+                                    border-width: 1px; border-color: #4a4a51;
+                                    VerticalLayout {
+                                        padding: 12px; spacing: 4px;
+                                        Text { text: plugin; color: #eeeeef; font-size: 15px; font-weight: 600; }
+                                        Text { text: "Not connected — configuration coming soon"; color: #a7a7b0; font-size: 12px; }
+                                    }
+                                }
+                            }
+                            if root.settings-tab == 3: VerticalLayout {
+                                spacing: 12px;
+                                Text { text: "Agent presets"; color: #f3f3f6; font-size: 19px; font-weight: 600; }
+                                Text { text: "Choose a preset for future sessions (preview)."; color: #aaaaaf; font-size: 12px; }
+                                for preset in ["Standard mode", "PTC mode", "Minimal mode", "Creator mode"]: Rectangle {
+                                    height: 66px; background: #343438; border-radius: 12px;
+                                    border-width: 1px; border-color: root.active-mode == preset ? #8d9bbd : #4a4a51;
+                                    HorizontalLayout {
+                                        padding: 12px;
+                                        Text { text: preset; color: #eeeeef; font-size: 14px; vertical-alignment: center; }
+                                        Rectangle { horizontal-stretch: 1; background: transparent; }
+                                        Text { text: root.active-mode == preset ? "Selected" : "Select"; color: #b8c4e1; font-size: 12px; vertical-alignment: center; }
+                                    }
+                                    TouchArea { clicked => { root.active-mode = preset; } }
+                                }
+                            }
+                            Rectangle { vertical-stretch: 1; background: transparent; }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
 }
