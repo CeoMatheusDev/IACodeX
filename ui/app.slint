@@ -11,6 +11,9 @@ export component AppWindow inherits Window {
     in-out property <string> provider-api-key: "";
     in-out property <string> provider-status: "";
     in-out property <bool> provider-custom: false;
+    in-out property <string> provider-id: "";
+    in-out property <string> provider-protocol: "OpenAI-compatible";
+    in-out property <bool> provider-protocol-open: false;
     callback save-settings(string, string, string, string, string, string, bool, bool, bool);
     in-out property <bool> plugin-shell: false;
     in-out property <bool> plugin-agent-loop: false;
@@ -413,13 +416,13 @@ export component AppWindow inherits Window {
                                         border-radius: 11px; border-width: 1px; border-color: #595963;
                                         background: #393940;
                                         Text { text: (root.pt ? "+ Adicionar provedor" : "+ Add provider"); color: #f0f0f4; font-size: 13px; horizontal-alignment: center; vertical-alignment: center; }
-                                        TouchArea { clicked => { root.provider-name = "DeepSeek"; root.provider-url = "https://api.deepseek.com"; root.provider-model = ""; root.provider-api-key = ""; root.provider-status = ""; root.provider-custom = false; root.provider-editor = true; } }
+                                        TouchArea { clicked => { root.provider-name = "DeepSeek"; root.provider-url = "https://api.deepseek.com"; root.provider-model = ""; root.provider-api-key = ""; root.provider-status = ""; root.provider-custom = false; root.provider-id = ""; root.provider-editor = true; } }
                                     }
                                     Rectangle {
                                         border-radius: 11px; border-width: 1px; border-color: #595963;
                                         background: #393940;
                                         Text { text: (root.pt ? "+ Criar provedor personalizado" : "+ Add a custom provider"); color: #f0f0f4; font-size: 13px; horizontal-alignment: center; vertical-alignment: center; }
-                                        TouchArea { clicked => { root.provider-name = ""; root.provider-url = ""; root.provider-model = ""; root.provider-api-key = ""; root.provider-status = ""; root.provider-custom = true; root.provider-editor = true; } }
+                                        TouchArea { clicked => { root.provider-name = ""; root.provider-url = ""; root.provider-model = ""; root.provider-api-key = ""; root.provider-status = ""; root.provider-custom = true; root.provider-id = ""; root.provider-protocol = "OpenAI-compatible"; root.provider-editor = true; } }
                                     }
                                 }
                             }
@@ -480,7 +483,7 @@ export component AppWindow inherits Window {
         TouchArea { clicked => { root.provider-editor = false; } }
         Rectangle {
             width: min(520px, parent.width - 36px);
-            height: min(590px, parent.height - 36px);
+            height: min(root.provider-custom ? 690px : 590px, parent.height - 36px);
             x: (parent.width - self.width) / 2;
             y: (parent.height - self.height) / 2;
             background: root.bg-panel;
@@ -492,7 +495,7 @@ export component AppWindow inherits Window {
                 padding: 20px; spacing: 9px;
                 HorizontalLayout {
                     height: 34px;
-                    Text { text: root.pt ? "Adicionar provedor" : "Add provider"; color: root.fg-main; font-size: 19px; font-weight: 600; vertical-alignment: center; }
+                    Text { text: root.provider-custom ? (root.pt ? "Criar provedor personalizado" : "Create custom provider") : (root.pt ? "Adicionar provedor" : "Add provider"); color: root.fg-main; font-size: 19px; font-weight: 600; vertical-alignment: center; }
                     Rectangle { horizontal-stretch: 1; background: transparent; }
                     Rectangle {
                         width: 32px; background: #424249; border-radius: 8px;
@@ -500,8 +503,13 @@ export component AppWindow inherits Window {
                         TouchArea { clicked => { root.provider-editor = false; root.provider-list-open = false; } }
                     }
                 }
+                if root.provider-custom: VerticalLayout {
+                    spacing: 5px;
+                    Text { text: "Provider ID"; color: root.fg-main; font-size: 13px; }
+                    LineEdit { text <=> root.provider-id; placeholder-text: "my-provider"; }
+                }
                 Text { text: "Provider name"; color: root.fg-main; font-size: 13px; }
-                Rectangle {
+                if !root.provider-custom: Rectangle {
                     height: 38px; background: root.bg-card; border-radius: 9px; border-width: 1px; border-color: root.outline;
                     HorizontalLayout {
                         padding-left: 12px; padding-right: 12px;
@@ -511,7 +519,7 @@ export component AppWindow inherits Window {
                     }
                     TouchArea { clicked => { root.provider-list-open = !root.provider-list-open; } }
                 }
-                if root.provider-list-open: Rectangle {
+                if root.provider-list-open && !root.provider-custom: Rectangle {
                     height: 150px; background: root.bg-card; border-radius: 10px;
                     ScrollView {
                         VerticalLayout {
@@ -549,6 +557,25 @@ export component AppWindow inherits Window {
                 LineEdit { text <=> root.provider-api-key; placeholder-text: "Enter API key (not saved)"; input-type: password; }
                 Text { text: "Base URL"; color: root.fg-main; font-size: 13px; }
                 LineEdit { text <=> root.provider-url; placeholder-text: "https://api.example.com/v1"; }
+                if root.provider-custom: VerticalLayout {
+                    spacing: 5px;
+                    Text { text: "API protocol"; color: root.fg-main; font-size: 13px; }
+                    Rectangle {
+                        height: 36px; background: root.bg-card; border-radius: 9px; border-width: 1px; border-color: root.outline;
+                        Text { text: root.provider-protocol + " ⌄"; color: root.fg-main; vertical-alignment: center; x: 12px; }
+                        TouchArea { clicked => { root.provider-protocol-open = !root.provider-protocol-open; } }
+                    }
+                    if root.provider-protocol-open: Rectangle {
+                        height: 72px; background: root.bg-card; border-radius: 9px;
+                        VerticalLayout {
+                            for protocol in ["OpenAI-compatible", "Anthropic"]: Rectangle {
+                                height: 34px; background: #41414a;
+                                Text { text: protocol; color: white; x: 10px; vertical-alignment: center; }
+                                TouchArea { clicked => { root.provider-protocol = protocol; root.provider-protocol-open = false; } }
+                            }
+                        }
+                    }
+                }
                 HorizontalLayout {
                     height: 36px; spacing: 8px;
                     Text { text: "Models"; color: root.fg-main; font-size: 13px; vertical-alignment: center; }
@@ -577,16 +604,16 @@ export component AppWindow inherits Window {
                     }
                     Rectangle {
                         background: #4a638c; border-radius: 9px;
-                        Text { text: "Apply"; color: white; horizontal-alignment: center; vertical-alignment: center; }
+                        Text { text: root.provider-custom ? "Create provider" : "Apply"; color: white; horizontal-alignment: center; vertical-alignment: center; }
                         TouchArea { clicked => {
-                            if root.provider-name != "" && root.provider-url != "" {
+                            if root.provider-name != "" && root.provider-url != "" && (!root.provider-custom || root.provider-id != "") {
                                 root.settings-provider = root.provider-name;
                                 root.active-model = root.provider-model != "" ? root.provider-model : root.active-model;
                                 root.provider-editor = false;
                                 root.provider-list-open = false;
                                 root.persist-settings();
                             } else {
-                                root.provider-status = "Provider name and Base URL are required.";
+                                root.provider-status = root.provider-custom ? "Provider ID, name and Base URL are required." : "Provider name and Base URL are required.";
                             }
                         } }
                     }
