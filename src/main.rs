@@ -4,6 +4,10 @@ use std::{fs, path::PathBuf, process::Command};
 use serde_json::{json, Value};
 use slint::{Model, ModelRc, VecModel};
 use std::rc::Rc;
+use std::sync::{Arc, Mutex};
+use tokio_util::sync::CancellationToken;
+use agent::{AgentConfig, AgentEvent, AgentLoop};
+use llm::openai_compatible::OpenAiCompatible;
 
 fn config_path() -> Option<PathBuf> {
     let base = std::env::var_os("XDG_CONFIG_HOME")
@@ -135,6 +139,10 @@ fn system_prefers_dark() -> bool {
 }
 
 fn main() -> Result<(), slint::PlatformError> {
+    let runtime = tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        .build()
+        .expect("Tokio runtime could not start");
     let detected_dark = system_prefers_dark();
     let app = AppWindow::new()?;
     app.set_system_dark(detected_dark);
@@ -313,8 +321,100 @@ fn main() -> Result<(), slint::PlatformError> {
         }
     });
 
-    app.on_send_prompt(|message| {
-        println!("Prompt (interface demonstrativa): {}", message);
+    let active_cancel: Arc<Mutex<Option<CancellationToken>>> = Arc::new(Mutex::new(None));
+    let cancel_for_button = Arc::clone(&active_cancel);
+    app.on_cancel_prompt(move || {
+        if let Ok(guard) = cancel_for_button.lock() {
+            if let Some(token) = guard.as_ref() { token.cancel(); }
+        }
+    });
+
+    let weak_for_send = app.as_weak();
+    let cancellation_for_send = Arc::clone(&active_cancel);
+    let handle = runtime.handle().clone();
+    app.on_send_prompt(move |message| {
+        let Some(ui) = weak_for_send.upgrade() else { return; };
+        let selected_model = ui.get_active_model().to_string();
+        let providers = read_providers();
+        let selected = providers.get("providers").and_then(Value::as_object)
+            .and_then(|items| items.values().find_map(|provider| {
+                let models = provider.get("models")?.as_array()?;
+                let model = models.iter().find(|item| item.get("id").and_then(Value::as_str) == Some(selected_model.as_str()))?;
+                Some((provider, model))
+            }));
+        let Some((provider, _model)) = selected else {
+            ui.set_response_text("Select a configured model in the chat before sending.".into());
+            ui.set_is_streaming(false);
+            return;
+        };
+        if provider.get("api_protocol").and_then(Value::as_str) != Some("OpenAI-compatible") {
+            ui.set_response_text("This provider protocol is not supported yet.".into());
+            ui.set_is_streaming(false);
+            return;
+        }
+        let url = provider.get("base_url").and_then(Value::as_str).unwrap_or("").to_owned();
+        let env_key = std::env::var("DEEPSEEK_API_KEY").ok().filter(|key| !key.is_empty());
+        let insecure = env_key.is_none();
+        let key = env_key.or_else(|| provider.get("api_key").and_then(Value::as_str).map(str::to_owned));
+        let Some(key) = key.filter(|key| !key.is_empty()) else {
+            ui.set_response_text("Missing DEEPSEEK_API_KEY (or providers.json api_key).".into());
+            ui.set_is_streaming(false);
+            return;
+        };
+        if insecure {
+            ui.set_response_text("Warning: using plaintext api_key from providers.json (less secure).\\n".into());
+        }
+        let token = CancellationToken::new();
+        if let Ok(mut guard) = cancellation_for_send.lock() {
+            if let Some(previous) = guard.replace(token.clone()) { previous.cancel(); }
+        }
+        let weak = weak_for_send.clone();
+        handle.spawn(async move {
+            let client = match OpenAiCompatible::new(&url, key, selected_model.clone()) {
+                Ok(client) => client,
+                Err(error) => {
+                    let _ = slint::invoke_from_event_loop(move || {
+                        if let Some(ui) = weak.upgrade() {
+                            ui.set_response_text(error.to_string().into());
+                            ui.set_is_streaming(false);
+                        }
+                    });
+                    return;
+                }
+            };
+            let mut agent = AgentLoop::new(client, AgentConfig {
+                model: selected_model,
+                system_prompt: "Você é um assistente de código conciso.".into(),
+                max_iterations: 1,
+            });
+            let mut events = agent.run(message.to_string(), token).await;
+            while let Some(event) = events.recv().await {
+                let weak = weak.clone();
+                let _ = slint::invoke_from_event_loop(move || {
+                    if let Some(ui) = weak.upgrade() {
+                        match event {
+                            AgentEvent::Started => { ui.set_is_streaming(true); }
+                            AgentEvent::TextDelta(delta) => {
+                                let mut text = ui.get_response_text().to_string();
+                                text.push_str(&delta);
+                                ui.set_response_text(text.into());
+                            }
+                            AgentEvent::Cancelled => {
+                                ui.set_is_streaming(false);
+                            }
+                            AgentEvent::Completed => {
+                                ui.set_is_streaming(false);
+                            }
+                            AgentEvent::Failed(message) => {
+                                let text = format!("{}\\nError: {message}", ui.get_response_text());
+                                ui.set_response_text(text.into());
+                                ui.set_is_streaming(false);
+                            }
+                        }
+                    }
+                });
+            }
+        });
     });
     app.run()
 }
