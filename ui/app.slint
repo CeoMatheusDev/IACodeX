@@ -52,7 +52,7 @@ export component AppWindow inherits Window {
                     border-color: #55565e;
                     border-width: 1px;
                     border-radius: 12px;
-                    Text { text: "⊕  New Session"; color: #e8e9ec; horizontal-alignment: center; vertical-alignment: center; font-size: 14px; }
+                    HorizontalLayout { alignment: center; spacing: 8px; Image { source: @image-url("../adicionar.png"); width: 17px; height: 17px; image-fit: contain; } Text { text: "New Session"; color: #e8e9ec; vertical-alignment: center; font-size: 14px; } }
                     new-session-touch := TouchArea { clicked => { root.has-session = false; root.prompt-text = ""; root.session-name = "New Session"; } }
                 }
                 Rectangle { height: 15px; background: #00000000; }
@@ -66,7 +66,7 @@ export component AppWindow inherits Window {
                 Rectangle {
                     height: 35px;
                     background: #00000000;
-                    Text { text: root.workspace-open ? "▱  VorynOS" : "▹  VorynOS"; color: #d8d9e0; font-size: 14px; vertical-alignment: center; x: 6px; }
+                    HorizontalLayout { padding-left: 6px; spacing: 8px; Image { source: @image-url("../project.png"); width: 18px; height: 18px; image-fit: contain; } Text { text: root.workspace-open ? "⌄ VorynOS" : "› VorynOS"; color: #d8d9e0; font-size: 14px; vertical-alignment: center; } }
                     TouchArea { clicked => { root.workspace-open = !root.workspace-open; root.active-workspace = "VorynOS"; } }
                 }
                 if root.workspace-open: VerticalLayout {
@@ -96,14 +96,14 @@ export component AppWindow inherits Window {
                 Rectangle {
                     height: 36px;
                     background: #00000000;
-                    Text { text: "▱  Ungrouped"; color: #d4d4da; x: 6px; vertical-alignment: center; font-size: 14px; }
+                    HorizontalLayout { padding-left: 6px; spacing: 8px; Image { source: @image-url("../project.png"); width: 18px; height: 18px; image-fit: contain; } Text { text: "Ungrouped"; color: #d4d4da; vertical-alignment: center; font-size: 14px; } }
                     TouchArea { clicked => { root.active-workspace = "Ungrouped"; } }
                 }
                 Rectangle { vertical-stretch: 1; background: #00000000; }
                 Rectangle {
                     height: 36px;
                     background: #00000000;
-                    Text { text: "⚙  Settings"; color: #e0e1e6; vertical-alignment: center; font-size: 14px; }
+                    HorizontalLayout { spacing: 9px; Image { source: @image-url("../setting.png"); width: 19px; height: 19px; image-fit: contain; } Text { text: "Settings"; color: #e0e1e6; vertical-alignment: center; font-size: 14px; } }
                 }
             }
         }
@@ -147,7 +147,7 @@ export component AppWindow inherits Window {
                             Rectangle {
                                 width: 100px;
                                 background: #00000000;
-                                Text { text: "▱  " + root.active-workspace + " ⌄"; color: #d6d7dd; font-size: 13px; vertical-alignment: center; }
+                                HorizontalLayout { spacing: 6px; Image { source: @image-url("../project.png"); width: 16px; height: 16px; image-fit: contain; } Text { text: root.active-workspace + " ⌄"; color: #d6d7dd; font-size: 13px; vertical-alignment: center; } }
                                 TouchArea { clicked => { root.workspace-menu-open = !root.workspace-menu-open; } }
                             }
                             Rectangle {
@@ -190,7 +190,7 @@ export component AppWindow inherits Window {
                                         height: 30px;
                                         background: #38383b;
                                         border-radius: 15px;
-                                        Text { text: "+"; color: #d1d2d8; font-size: 23px; horizontal-alignment: center; vertical-alignment: center; }
+                                        Image { source: @image-url("../adicionar-arquivo.png"); width: 20px; height: 20px; x: (parent.width - self.width) / 2; y: (parent.height - self.height) / 2; image-fit: contain; }
                                     }
                                     Rectangle {
                                         width: 130px;
