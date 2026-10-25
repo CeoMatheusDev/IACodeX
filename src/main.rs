@@ -114,6 +114,30 @@ fn main() -> Result<(), slint::PlatformError> {
     });
 
     app.on_model_matches(|model, search| model.to_lowercase().contains(&search.to_lowercase()));
+    let weak_for_selection = app.as_weak();
+    app.on_select_configured_model(move |model_id| {
+        let mut supported = false;
+        if let Some(path) = config_path() {
+            if let Some(data) = read_config(&path) {
+                if let Some(providers) = data.get("providers").and_then(Value::as_object) {
+                    for provider in providers.values() {
+                        if let Some(models) = provider.get("models").and_then(Value::as_array) {
+                            for model in models {
+                                if model.get("id").and_then(Value::as_str) == Some(model_id.as_str()) {
+                                    supported = model.get("supports_thinking").and_then(Value::as_bool).unwrap_or(false);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        if let Some(app) = weak_for_selection.upgrade() {
+            app.set_thinking_supported(supported);
+            app.set_thinking_enabled(false);
+        }
+    });
+
     let models_for_create = model_list.clone();
     let weak = app.as_weak();
     app.on_create_provider(move |id, name, url, protocol, _api_key, model_id, display, context, max_output| {
