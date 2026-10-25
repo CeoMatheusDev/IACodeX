@@ -13,8 +13,33 @@ fn clean(value: &str) -> String {
     value.replace('\n', " ").replace('\r', " ").replace('=', " ")
 }
 
+fn system_prefers_dark() -> bool {
+    if let Ok(theme) = std::env::var("GTK_THEME") {
+        if theme.to_ascii_lowercase().contains("dark") { return true; }
+    }
+    if let Some(home) = std::env::var_os("HOME") {
+        let path = PathBuf::from(home).join(".config/kdeglobals");
+        if let Ok(contents) = fs::read_to_string(path) {
+            let mut in_general = false;
+            for line in contents.lines() {
+                let line = line.trim();
+                if line.starts_with('[') {
+                    in_general = line == "[General]";
+                } else if in_general {
+                    if let Some(value) = line.strip_prefix("ColorScheme=") {
+                        return value.to_ascii_lowercase().contains("dark");
+                    }
+                }
+            }
+        }
+    }
+    true // Keep the current dark default when the system theme is unknown.
+}
+
 fn main() -> Result<(), slint::PlatformError> {
+    let detected_dark = system_prefers_dark();
     let app = AppWindow::new()?;
+    app.set_system_dark(detected_dark);
 
     if let Some(path) = config_path() {
         if let Ok(contents) = fs::read_to_string(path) {
