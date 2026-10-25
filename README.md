@@ -20,7 +20,7 @@ cargo test
 cargo run
 ```
 
-Na interface, abra **Settings > Providers**, selecione **DeepSeek** (ou crie um provedor OpenAI-compatível), informe a **API key**, confirme o modelo `deepseek-chat` e clique em **Apply**. Depois selecione um workspace, abra **New Session**, escolha o modelo no chat e envie a mensagem. Não é necessário configurar variáveis de ambiente.
+Na interface, abra **Settings > Providers**, selecione **DeepSeek** (ou crie um provedor OpenAI-compatível), informe a **API key**, confirme o modelo `deepseek-chat` e clique em **Apply**. Use **Fetch available models** para consultar o endpoint OpenAI-compatível `/models` com a URL e a chave informadas. Clique em um modelo retornado para selecioná-lo; a lista é temporária e o modelo escolhido é salvo ao aplicar. O cartão do provedor exibe um indicador: verde quando a última consulta funcionou, vermelho quando falhou e amarelo quando ainda não foi verificado. Use **Edit** para alterar a configuração; deixe a chave vazia para manter a anterior. Depois selecione um workspace, abra **New Session**, escolha o modelo no chat e envie a mensagem. Não é necessário configurar variáveis de ambiente.
 
 A chave configurada na interface é salva em `~/.config/iacodex/providers.json` e tem prioridade sobre a variável opcional `DEEPSEEK_API_KEY`. No Unix, novos arquivos JSON são gravados com permissões `0600`. **A chave permanece em texto simples:** não compartilhe o arquivo. **TODO:** integrar Secret Service/keyring.
 
