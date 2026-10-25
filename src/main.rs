@@ -12,6 +12,21 @@ fn config_path() -> Option<PathBuf> {
     Some(base.join("iacodex").join("settings.json"))
 }
 
+fn workspaces_path() -> Option<PathBuf> {
+    Some(config_path()?.with_file_name("workspaces.json"))
+}
+
+fn read_workspaces() -> Vec<String> {
+    workspaces_path()
+        .and_then(|path| fs::read_to_string(path).ok())
+        .and_then(|content| serde_json::from_str::<Value>(&content).ok())
+        .and_then(|value| value.get("workspaces").and_then(Value::as_array).cloned())
+        .unwrap_or_default()
+        .iter()
+        .filter_map(|value| value.as_str().map(str::to_owned))
+        .collect()
+}
+
 fn providers_path() -> Option<PathBuf> {
     Some(config_path()?.with_file_name("providers.json"))
 }
@@ -105,6 +120,32 @@ fn main() -> Result<(), slint::PlatformError> {
     let detected_dark = system_prefers_dark();
     let app = AppWindow::new()?;
     app.set_system_dark(detected_dark);
+    let workspace_list = Rc::new(VecModel::<slint::SharedString>::from(
+        read_workspaces().into_iter().map(Into::into).collect::<Vec<_>>()
+    ));
+    app.set_workspaces(ModelRc::from(workspace_list.clone()));
+    app.set_active_workspace("".into());
+    let workspaces_for_create = workspace_list.clone();
+    let weak_workspace = app.as_weak();
+    app.on_create_workspace(move |name| {
+        let name = name.trim();
+        if name.is_empty() { return; }
+        let Some(path) = workspaces_path() else { return; };
+        let mut names = read_workspaces();
+        if !names.iter().any(|existing| existing == name) {
+            names.push(name.to_owned());
+            if let Err(error) = save_json(&path, &json!({"workspaces": names})) {
+                eprintln!("Cannot save workspace: {error}");
+                return;
+            }
+            workspaces_for_create.push(name.into());
+        }
+        if let Some(app) = weak_workspace.upgrade() {
+            app.set_active_workspace(name.into());
+            app.set_session_ready(false);
+            app.set_has_session(false);
+        }
+    });
     migrate_providers();
     let model_list = Rc::new(VecModel::<slint::SharedString>::from(Vec::new()));
     app.set_configured_models(ModelRc::from(model_list.clone()));
