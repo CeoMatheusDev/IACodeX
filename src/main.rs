@@ -361,6 +361,47 @@ fn main() -> Result<(), slint::PlatformError> {
                 if models.is_empty() { return Err("Provider returned no models.".into()); }
                 Ok(models)
             }.await;
+            // A successful /models response does not prove inference access.
+            // Probe each model with a minimal completion; throttle requests to limit cost.
+            let mut probe_statuses: Vec<String> = Vec::new();
+            if let Ok(ref models) = result {
+                let http = reqwest::Client::builder()
+                    .timeout(std::time::Duration::from_secs(12))
+                    .build();
+                if let Ok(http) = http {
+                    let semaphore = Arc::new(tokio::sync::Semaphore::new(4));
+                    let mut tasks = tokio::task::JoinSet::new();
+                    for (index, model) in models.iter().enumerate() {
+                        let Some(id) = model.get("id").and_then(Value::as_str) else { continue; };
+                        let id = id.to_owned();
+                        let client = http.clone();
+                        let key = key.clone();
+                        let endpoint = format!("{}/chat/completions", url.trim_end_matches('/'));
+                        let semaphore = Arc::clone(&semaphore);
+                        tasks.spawn(async move {
+                            let _permit = semaphore.acquire().await.ok();
+                            let mut req = client.post(endpoint).json(&json!({
+                                "model": id, "messages": [{"role": "user", "content": "Reply OK."}],
+                                "max_tokens": 1, "stream": false
+                            }));
+                            if !key.is_empty() { req = req.bearer_auth(key); }
+                            let state = match req.send().await {
+                                Ok(response) if response.status().is_success() => "ok",
+                                Ok(response) if response.status().as_u16() == 401
+                                    || response.status().as_u16() == 403
+                                    || response.status().as_u16() == 404
+                                    || response.status().as_u16() == 400 => "fail",
+                                _ => "unknown",
+                            };
+                            (index, state.to_owned())
+                        });
+                    }
+                    probe_statuses = vec!["unknown".to_owned(); models.len()];
+                    while let Some(Ok((index, state))) = tasks.join_next().await {
+                        probe_statuses[index] = state;
+                    }
+                }
+            }
             let _ = slint::invoke_from_event_loop(move || {
                 if let Some(ui) = weak.upgrade() {
                     ui.set_provider_loading(false);
@@ -371,13 +412,18 @@ fn main() -> Result<(), slint::PlatformError> {
                                 cache.clear();
                                 for model in models { if let Some(id) = model.get("id").and_then(Value::as_str) { cache.insert(id.to_owned(), model.clone()); } }
                             }
+                            let ok_count = probe_statuses.iter().filter(|s| s.as_str() == "ok").count();
+                            ui.set_discovered_model_statuses(ModelRc::from(Rc::new(VecModel::<slint::SharedString>::from(
+                                probe_statuses.into_iter().map(Into::into).collect::<Vec<_>>()
+                            ))));
                             ui.set_provider_health(1);
-                            ui.set_provider_status(format!("Connected: {} models available. Click a model to select.", ids.len()).into());
+                            ui.set_provider_status(format!("{} models; {} verified. Green: responds, red: rejected, yellow: unavailable/timeout. Tests may consume API tokens.", ids.len(), ok_count).into());
                             ui.set_discovered_models(ModelRc::from(Rc::new(VecModel::<slint::SharedString>::from(
                                 ids.into_iter().map(Into::into).collect::<Vec<_>>()
                             ))));
                         }
                         Err(error) => {
+                            ui.set_discovered_model_statuses(ModelRc::from(Rc::new(VecModel::<slint::SharedString>::from(Vec::new()))));
                             ui.set_provider_health(2);
                             ui.set_provider_status(format!("Connection failed: {error}").into());
                         }
