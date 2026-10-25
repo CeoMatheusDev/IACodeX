@@ -570,7 +570,7 @@ export component AppWindow inherits Window {
                                         border-radius: 11px; border-width: 1px; border-color: #595963;
                                         background: #393940;
                                         Text { text: (root.pt ? "+ Adicionar provedor" : "+ Add provider"); color: #f0f0f4; font-size: 13px; horizontal-alignment: center; vertical-alignment: center; }
-                                        TouchArea { clicked => { root.provider-name = "DeepSeek"; root.provider-url = "https://api.deepseek.com"; root.provider-model = ""; root.provider-model-display = ""; root.provider-model-context = ""; root.provider-model-max-output = ""; root.provider-model-added = false; root.provider-model-expanded = false; root.provider-api-key = ""; root.provider-status = ""; root.provider-custom = false; root.provider-id = ""; root.provider-editor = true; } }
+                                        TouchArea { clicked => { root.provider-name = "DeepSeek"; root.provider-url = "https://api.deepseek.com"; root.provider-model = "deepseek-chat"; root.provider-model-display = ""; root.provider-model-context = ""; root.provider-model-max-output = ""; root.provider-model-added = true; root.provider-model-expanded = false; root.provider-api-key = ""; root.provider-status = ""; root.provider-custom = false; root.provider-id = ""; root.provider-editor = true; } }
                                     }
                                     Rectangle {
                                         border-radius: 11px; border-width: 1px; border-color: #595963;
@@ -708,7 +708,7 @@ export component AppWindow inherits Window {
                 }
                 if root.provider-custom: LineEdit { text <=> root.provider-name; placeholder-text: "Custom provider name"; }
                 Text { text: "API key"; color: root.fg-main; font-size: 13px; }
-                LineEdit { text <=> root.provider-api-key; placeholder-text: "Enter API key (not saved)"; input-type: password; }
+                LineEdit { text <=> root.provider-api-key; placeholder-text: "API key (saved locally)"; input-type: password; }
                 Text { text: "Base URL"; color: root.fg-main; font-size: 13px; }
                 LineEdit { text <=> root.provider-url; placeholder-text: "https://api.example.com/v1"; }
                 if root.provider-custom: VerticalLayout {
