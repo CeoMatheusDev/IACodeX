@@ -12,6 +12,11 @@ export component AppWindow inherits Window {
     in-out property <string> provider-status: "";
     in-out property <bool> provider-custom: false;
     in-out property <string> provider-id: "";
+    in-out property <string> provider-model-display: "";
+    in-out property <string> provider-model-context: "";
+    in-out property <string> provider-model-max-output: "";
+    in-out property <bool> provider-model-added: false;
+    in-out property <bool> provider-model-expanded: false;
     in-out property <string> provider-protocol: "OpenAI-compatible";
     in-out property <bool> provider-protocol-open: false;
     callback save-settings(string, string, string, string, string, string, bool, bool, bool);
@@ -416,13 +421,13 @@ export component AppWindow inherits Window {
                                         border-radius: 11px; border-width: 1px; border-color: #595963;
                                         background: #393940;
                                         Text { text: (root.pt ? "+ Adicionar provedor" : "+ Add provider"); color: #f0f0f4; font-size: 13px; horizontal-alignment: center; vertical-alignment: center; }
-                                        TouchArea { clicked => { root.provider-name = "DeepSeek"; root.provider-url = "https://api.deepseek.com"; root.provider-model = ""; root.provider-api-key = ""; root.provider-status = ""; root.provider-custom = false; root.provider-id = ""; root.provider-editor = true; } }
+                                        TouchArea { clicked => { root.provider-name = "DeepSeek"; root.provider-url = "https://api.deepseek.com"; root.provider-model = ""; root.provider-model-display = ""; root.provider-model-context = ""; root.provider-model-max-output = ""; root.provider-model-added = false; root.provider-model-expanded = false; root.provider-api-key = ""; root.provider-status = ""; root.provider-custom = false; root.provider-id = ""; root.provider-editor = true; } }
                                     }
                                     Rectangle {
                                         border-radius: 11px; border-width: 1px; border-color: #595963;
                                         background: #393940;
                                         Text { text: (root.pt ? "+ Criar provedor personalizado" : "+ Add a custom provider"); color: #f0f0f4; font-size: 13px; horizontal-alignment: center; vertical-alignment: center; }
-                                        TouchArea { clicked => { root.provider-name = ""; root.provider-url = ""; root.provider-model = ""; root.provider-api-key = ""; root.provider-status = ""; root.provider-custom = true; root.provider-id = ""; root.provider-protocol = "OpenAI-compatible"; root.provider-editor = true; } }
+                                        TouchArea { clicked => { root.provider-name = ""; root.provider-url = ""; root.provider-model = ""; root.provider-model-display = ""; root.provider-model-context = ""; root.provider-model-max-output = ""; root.provider-model-added = false; root.provider-model-expanded = false; root.provider-api-key = ""; root.provider-status = ""; root.provider-custom = true; root.provider-id = ""; root.provider-protocol = "OpenAI-compatible"; root.provider-editor = true; } }
                                     }
                                 }
                             }
@@ -587,11 +592,42 @@ export component AppWindow inherits Window {
                     }
                 }
                 Text { text: "No models will be shown in the selector. Unlisted IDs can still be sent directly."; color: root.fg-muted; font-size: 11px; wrap: word-wrap; }
-                LineEdit { text <=> root.provider-model; placeholder-text: "Model ID"; }
+                if root.provider-model-added: Rectangle {
+                    height: root.provider-model-expanded ? 160px : 120px;
+                    background: root.bg-card;
+                    border-radius: 9px;
+                    border-width: 1px;
+                    border-color: root.outline;
+                    VerticalLayout {
+                        padding: 9px; spacing: 6px;
+                        HorizontalLayout {
+                            height: 30px; spacing: 8px;
+                            Text { text: "Model ID"; color: root.fg-muted; font-size: 12px; vertical-alignment: center; }
+                            Rectangle { horizontal-stretch: 1; background: transparent; }
+                            Rectangle {
+                                width: 30px; background: #434650; border-radius: 6px;
+                                Text { text: root.provider-model-expanded ? "⌄" : ">"; color: white; horizontal-alignment: center; vertical-alignment: center; }
+                                TouchArea { clicked => { root.provider-model-expanded = !root.provider-model-expanded; } }
+                            }
+                            Rectangle {
+                                width: 30px; background: #63363c; border-radius: 6px;
+                                Text { text: "🗑"; color: white; horizontal-alignment: center; vertical-alignment: center; }
+                                TouchArea { clicked => { root.provider-model-added = false; root.provider-model = ""; root.provider-model-display = ""; root.provider-model-context = ""; root.provider-model-max-output = ""; root.provider-model-expanded = false; } }
+                            }
+                        }
+                        LineEdit { text <=> root.provider-model; placeholder-text: "Model ID"; }
+                        LineEdit { text <=> root.provider-model-display; placeholder-text: "Display name"; }
+                        if root.provider-model-expanded: HorizontalLayout {
+                            height: 32px; spacing: 8px;
+                            LineEdit { text <=> root.provider-model-context; placeholder-text: "Context window"; }
+                            LineEdit { text <=> root.provider-model-max-output; placeholder-text: "Max output tokens"; }
+                        }
+                    }
+                }
                 Rectangle {
                     height: 34px; background: #393b45; border-radius: 9px;
                     Text { text: "+ Add model"; color: white; font-size: 13px; horizontal-alignment: center; vertical-alignment: center; }
-                    TouchArea { clicked => { root.provider-status = root.provider-model != "" ? "Model ID added." : "Enter a model ID."; } }
+                    TouchArea { clicked => { root.provider-model-added = true; root.provider-model-expanded = false; } }
                 }
                 if root.provider-status != "": Text { text: root.provider-status; color: root.fg-muted; font-size: 12px; }
                 Rectangle { vertical-stretch: 1; background: transparent; }
