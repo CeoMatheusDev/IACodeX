@@ -7,6 +7,8 @@ export component AppWindow inherits Window {
     background: root.bg-main;
     callback send-prompt(string);
     callback cancel-prompt();
+    callback toggle-maximize();
+    in-out property <bool> window-maximized: true;
     in-out property <string> response-text: "";
     in-out property <bool> is-streaming: false;
     callback open-configuration-file();
@@ -189,6 +191,18 @@ export component AppWindow inherits Window {
                             spacing: 10px;
                             
                             Text { text: root.has-session ? root.session-name : "Into the Unknown"; color: root.fg-main; font-size: 24px; vertical-alignment: center; }
+                            Rectangle { horizontal-stretch: 1; background: transparent; }
+                            Rectangle {
+                                width: 108px; height: 30px; border-radius: 7px;
+                                background: maximize-touch.has-hover ? root.bg-card : root.bg-panel;
+                                border-width: 1px; border-color: root.outline;
+                                Text {
+                                    text: root.window-maximized ? (root.pt ? "❐ Restaurar" : "❐ Restore") : (root.pt ? "□ Maximizar" : "□ Maximize");
+                                    color: root.fg-main; font-size: 12px;
+                                    horizontal-alignment: center; vertical-alignment: center;
+                                }
+                                maximize-touch := TouchArea { clicked => { root.toggle-maximize(); } }
+                            }
                             Rectangle {
                                 width: 66px;
                                 height: 22px;
