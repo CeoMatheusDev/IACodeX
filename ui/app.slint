@@ -221,10 +221,11 @@ export component AppWindow inherits Window {
                                         Text { text: "+"; color: #e9eaf1; font-size: 22px; horizontal-alignment: center; vertical-alignment: center; }
                                     }
                                     Rectangle {
-                                        width: 130px;
-                                        background: #00000000;
-                                        Text { text: root.settings-permission + " ⌄"; color: #d3d4db; font-size: 13px; vertical-alignment: center; }
-                                        TouchArea { clicked => { root.access-open = !root.access-open; } }
+                                        width: 162px;
+                                        background: access-button.has-hover ? #363740 : #2d2e35;
+                                        border-radius: 17px;
+                                        Text { text: (root.settings-permission == "Read Only" ? "🛡 " : root.settings-permission == "Workspace Write" ? "✎ " : "⚠ ") + root.settings-permission + " ⌄"; color: #d3d4db; font-size: 12px; horizontal-alignment: center; vertical-alignment: center; }
+                                        access-button := TouchArea { clicked => { root.access-open = !root.access-open; root.model-open = false; } }
                                     }
                                     Rectangle { horizontal-stretch: 1; background: #00000000; }
                                     Rectangle {
@@ -283,9 +284,36 @@ export component AppWindow inherits Window {
                             }
                         }
                         if root.access-open: Rectangle {
-                            height: 30px; background: #2b2b30; border-radius: 6px;
-                            Text { text: root.settings-permission + " (interface preference only)"; color: root.fg-main; horizontal-alignment: center; vertical-alignment: center; }
-                            TouchArea { clicked => { root.access-open = false; } }
+                            height: 126px;
+                            background: root.bg-panel;
+                            border-radius: 10px;
+                            border-width: 1px;
+                            border-color: root.outline;
+                            VerticalLayout {
+                                padding: 6px;
+                                spacing: 3px;
+                                for option in ["Read Only", "Workspace Write", "Full access"]: Rectangle {
+                                    height: 34px;
+                                    border-radius: 7px;
+                                    background: permission-touch.has-hover ? #41444f : (root.settings-permission == option ? #363d4c : root.bg-card);
+                                    HorizontalLayout {
+                                        spacing: 8px;
+                                        Rectangle {
+                                            width: 30px;
+                                            background: transparent;
+                                            Text { text: option == "Read Only" ? "🛡" : option == "Workspace Write" ? "🛡✎" : "🛡!"; color: option == "Full access" ? #efab72 : #a5c5ef; font-size: 13px; horizontal-alignment: center; vertical-alignment: center; }
+                                        }
+                                        Text { text: option; color: root.fg-main; font-size: 13px; vertical-alignment: center; }
+                                    }
+                                    permission-touch := TouchArea {
+                                        clicked => {
+                                            root.settings-permission = option;
+                                            root.access-open = false;
+                                            root.persist-settings();
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                     Rectangle { horizontal-stretch: 1; background: #00000000; }
