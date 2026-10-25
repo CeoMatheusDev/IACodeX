@@ -1,38 +1,32 @@
 # IACodeX
 
-Aplicação desktop experimental em **Rust + Slint**, inspirada no estilo visual do DeepSeek Harness.
+Aplicativo desktop experimental de assistência à programação em **Rust + Slint**.
 
-## Estrutura
+## Componentes
 
-```text
-IACodeX/
-├── assets/
-│   └── images/           # Recursos PNG para a interface
-├── src/
-│   └── main.rs           # Inicialização e callbacks Rust
-├── ui/
-│   └── app.slint         # Layout, componentes e interações visuais
-├── Cargo.toml            # Dependências e configuração do pacote
-├── Cargo.lock            # Versões resolvidas das dependências
-├── build.rs              # Compilação da interface Slint
-├── rust-toolchain.toml   # Toolchain Rust fixada
-├── .gitignore
-├── LICENSE
-└── README.md
-```
-
-As imagens em `assets/images/` estão preservadas para uso futuro. Ao usá-las em `ui/app.slint`, referencie-as com `@image-url("../assets/images/nome-do-arquivo.png")`.
+- Interface Slint: workspaces, sessões, configurações e modelos.
+- Persistência JSON em `~/.config/iacodex/`: `settings.json`, `providers.json`, `workspaces.json`, `sessions.json`.
+- Harness inicial em `src/agent/`: ciclo de resposta do LLM, eventos e cancelamento.
+- Cliente HTTP em `src/llm/`: API OpenAI-compatível, streaming SSE e tratamento de erros.
+- Runtime Tokio separado da thread Slint; respostas encaminhadas com `slint::invoke_from_event_loop`.
 
 ## Executar no Fedora
 
 ```bash
 sudo dnf install gcc pkgconf-pkg-config fontconfig-devel libxkbcommon-devel wayland-devel
 rustup toolchain install 1.99.1
+export DEEPSEEK_API_KEY="SUA_CHAVE"
+cargo check
+cargo test
 cargo run
 ```
 
-## Estado atual
+Cadastre um provedor DeepSeek em `providers.json`, incluindo um modelo com ID `deepseek-chat`. Na interface, selecione o workspace, clique em **New Session**, selecione o modelo e envie a mensagem.
 
-A interface é um protótipo. A janela Settings e os controles de modelos/plugins ainda não implementam persistência, credenciais de API ou conexão com provedores. O envio de prompts apenas imprime o texto no terminal.
+A variável `DEEPSEEK_API_KEY` tem prioridade sobre `api_key` no `providers.json`. Armazenar chaves em JSON é menos seguro. **TODO:** integrar Secret Service/keyring.
 
-A compilação deve ser validada no Fedora com `cargo check` ou `cargo run`.
+## Estado e limitações
+
+A primeira integração com o LLM oferece streaming de texto, botão Stop e teste de loop com cliente simulado. **Ainda não há ferramentas, execução de shell, políticas de permissões efetivas, nem persistência do conteúdo completo do chat.** As sessões em JSON armazenam títulos. A instância do agente é recriada a cada envio, portanto o histórico em memória do AgentLoop ainda não é compartilhado entre mensagens da UI.
+
+A compilação e os testes precisam ser validados localmente no Fedora com `cargo check && cargo test`.
