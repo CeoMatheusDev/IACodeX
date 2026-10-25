@@ -8,7 +8,7 @@ export component AppWindow inherits Window {
     callback send-prompt(string);
     callback open-configuration-file();
     callback create-provider(string, string, string, string, string, string, string, string, string);
-    callback model-matches(string, string) -> bool;
+    pure callback model-matches(string, string) -> bool;
     callback select-configured-model(string);
     in-out property <[string]> configured-models: [];
     in-out property <string> model-search: "";
