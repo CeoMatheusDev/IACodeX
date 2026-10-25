@@ -10,6 +10,11 @@ export component AppWindow inherits Window {
     callback create-provider(string, string, string, string, string, string, string, string, string);
     pure callback model-matches(string, string) -> bool;
     callback select-configured-model(string);
+    callback create-workspace(string);
+    in-out property <[string]> workspaces: [];
+    in-out property <bool> create-workspace-open: false;
+    in-out property <string> new-workspace-name: "";
+    in-out property <bool> session-ready: false;
     in-out property <[string]> configured-models: [];
     in-out property <string> model-search: "";
     in-out property <bool> thinking-enabled: false;
@@ -54,7 +59,7 @@ export component AppWindow inherits Window {
     in-out property <string> settings-permission: "Full access";
     in-out property <string> settings-provider: "";
     in-out property <string> prompt-text: "";
-    in-out property <string> active-workspace: "VorynOS";
+    in-out property <string> active-workspace: "";
     in-out property <string> active-mode: "Standard mode";
     in-out property <string> active-model: "";
     in-out property <bool> show-sidebar: true;
@@ -95,29 +100,32 @@ export component AppWindow inherits Window {
                 Rectangle { height: 15px; background: #00000000; }
                 Rectangle {
                     height: 38px;
-                    background: new-session-touch.has-hover ? #505158 : #424349;
+                    background: root.active-workspace == "" ? #303036 : (new-session-touch.has-hover ? #505158 : #424349);
                     border-color: #55565e;
                     border-width: 1px;
                     border-radius: 12px;
                     Text { text: (root.pt ? "Nova sessão" : "New Session"); color: #f1f2f6; horizontal-alignment: center; vertical-alignment: center; font-size: 14px; font-weight: 600; }
-                    new-session-touch := TouchArea { clicked => { root.has-session = false; root.prompt-text = ""; root.session-name = "New Session"; } }
+                    new-session-touch := TouchArea { clicked => { if root.active-workspace != "" { root.has-session = false; root.session-ready = true; root.prompt-text = ""; root.session-name = "New Session"; } } }
                 }
                 Rectangle { height: 15px; background: #00000000; }
                 HorizontalLayout {
                     height: 34px;
                     Text { text: (root.pt ? "Espaços de trabalho" : "Workspaces"); color: #a7a8b0; font-size: 14px; vertical-alignment: center; }
                     Rectangle { horizontal-stretch: 1; background: #00000000; }
-                    Text { text: "+"; color: #c9cbd4; font-size: 23px; vertical-alignment: center; }
+                    Rectangle { width: 30px; background: workspace-add-touch.has-hover ? #343640 : transparent; border-radius: 7px; Text { text: "+"; color: #c9cbd4; font-size: 23px; horizontal-alignment: center; vertical-alignment: center; } workspace-add-touch := TouchArea { clicked => { root.new-workspace-name = ""; root.create-workspace-open = true; } } }
                 }
-                Rectangle {
-                    height: 48px;
-                    background: #252832;
-                    border-radius: 10px;
-                    border-width: 1px;
-                    border-color: #39445c;
-                    Text { text: (root.pt ? "Nenhum projeto ainda" : "No projects yet"); color: #b9c9e9; font-size: 13px; horizontal-alignment: center; vertical-alignment: center; }
+                if root.workspaces.length == 0: Rectangle {
+                    height: 48px; background: #252832; border-radius: 10px;
+                    border-width: 1px; border-color: #39445c;
+                    Text { text: root.pt ? "Nenhum workspace ainda" : "No workspaces yet"; color: #b9c9e9; font-size: 13px; horizontal-alignment: center; vertical-alignment: center; }
                 }
-                                Rectangle { vertical-stretch: 1; background: #00000000; }
+                for workspace in root.workspaces: Rectangle {
+                    height: 38px; border-radius: 9px;
+                    background: root.active-workspace == workspace ? #303f59 : (workspace-row.has-hover ? #2c303b : transparent);
+                    Text { text: "▣  " + workspace; color: root.fg-main; x: 12px; vertical-alignment: center; font-size: 13px; }
+                    workspace-row := TouchArea { clicked => { root.active-workspace = workspace; root.session-ready = false; root.has-session = false; root.prompt-text = ""; root.workspace-menu-open = false; } }
+                }
+                Rectangle { vertical-stretch: 1; background: #00000000; }
                 Rectangle {
                     height: 42px;
                     background: #303847;
@@ -172,7 +180,7 @@ export component AppWindow inherits Window {
                                 border-radius: 8px;
                                 border-width: 1px;
                                 border-color: #465675;
-                                Text { text: root.active-workspace + " ⌄"; color: #dfe8fa; font-size: 13px; horizontal-alignment: center; vertical-alignment: center; }
+                                Text { text: (root.active-workspace == "" ? (root.pt ? "Sem workspace" : "No workspace") : root.active-workspace) + " ⌄"; color: #dfe8fa; font-size: 13px; horizontal-alignment: center; vertical-alignment: center; }
                                 TouchArea { clicked => { root.workspace-menu-open = !root.workspace-menu-open; } }
                             }
                             Rectangle {
@@ -187,9 +195,18 @@ export component AppWindow inherits Window {
                             Rectangle { horizontal-stretch: 1; background: #00000000; }
                         }
                         if root.workspace-menu-open: Rectangle {
-                            height: 30px; background: #2b2b30; border-radius: 6px;
-                            Text { text: "VorynOS       /       Ungrouped"; color: root.fg-main; vertical-alignment: center; horizontal-alignment: center; }
-                            TouchArea { clicked => { root.active-workspace = root.active-workspace == "VorynOS" ? "Ungrouped" : "VorynOS"; root.workspace-menu-open = false; } }
+                            height: root.workspaces.length == 0 ? 34px : min(180px, root.workspaces.length * 34px);
+                            background: root.bg-panel; border-radius: 8px;
+                            ScrollView {
+                                VerticalLayout {
+                                    for workspace in root.workspaces: Rectangle {
+                                        height: 32px; background: workspace-menu-touch.has-hover ? #3a3e4b : root.bg-card;
+                                        Text { text: workspace; color: root.fg-main; x: 10px; vertical-alignment: center; }
+                                        workspace-menu-touch := TouchArea { clicked => { root.active-workspace = workspace; root.session-ready = false; root.has-session = false; root.workspace-menu-open = false; } }
+                                    }
+                                    if root.workspaces.length == 0: Text { text: root.pt ? "Crie um workspace no botão +" : "Create a workspace using +"; color: root.fg-muted; font-size: 12px; }
+                                }
+                            }
                         }
                         if root.mode-open: Rectangle {
                             height: 30px; background: #2b2b30; border-radius: 6px;
@@ -198,7 +215,7 @@ export component AppWindow inherits Window {
                         }
                         Rectangle {
                             height: 124px;
-                            background: #252528;
+                            background: root.session-ready && root.active-workspace != "" ? #252528 : #1e1e22;
                             border-radius: 18px;
                             border-width: 1px;
                             border-color: #3d3d43;
@@ -206,6 +223,7 @@ export component AppWindow inherits Window {
                                 padding: 9px;
                                 spacing: 4px;
                                 LineEdit {
+                                    enabled: root.session-ready && root.active-workspace != "";
                                     text <=> root.prompt-text;
                                     placeholder-text: (root.pt ? "Descreva o que deseja criar" : "Describe what you want to build");
                                     height: 64px;
@@ -240,10 +258,10 @@ export component AppWindow inherits Window {
                                         background: send-area.has-hover ? #536fa4 : #425e91;
                                         border-radius: 17px;
                                         Text { text: "↑"; color: #d3dce9; font-size: 22px; horizontal-alignment: center; vertical-alignment: center; }
-                                        send-area := TouchArea {
+                                        send-area := TouchArea { enabled: root.session-ready && root.active-workspace != "";
                                             clicked => {
-                                                if root.prompt-text != "" {
-                                                    root.send-prompt(root.prompt-text);
+                                                if root.prompt-text != "" && root.session-ready && root.active-workspace != "" {
+                                                    if root.session-ready && root.active-workspace != "" { root.send-prompt(root.prompt-text); }
                                                     root.session-name = root.prompt-text;
                                                     root.has-session = true;
                                                     root.prompt-text = "";
@@ -319,6 +337,39 @@ export component AppWindow inherits Window {
                     Rectangle { horizontal-stretch: 1; background: #00000000; }
                 }
                 Rectangle { vertical-stretch: 1.15; background: #00000000; }
+            }
+        }
+    }
+    if root.create-workspace-open: Rectangle {
+        background: #050509cc;
+        TouchArea { clicked => { root.create-workspace-open = false; } }
+        Rectangle {
+            width: 440px; height: 210px; background: root.bg-panel;
+            border-radius: 14px; border-width: 1px; border-color: root.outline;
+            x: (parent.width - self.width) / 2; y: (parent.height - self.height) / 2;
+            VerticalLayout {
+                padding: 20px; spacing: 14px;
+                Text { text: root.pt ? "Criar workspace" : "Create workspace"; color: root.fg-main; font-size: 19px; font-weight: 600; }
+                LineEdit { text <=> root.new-workspace-name; placeholder-text: root.pt ? "Nome do workspace" : "Workspace name"; }
+                HorizontalLayout {
+                    spacing: 10px;
+                    Rectangle { horizontal-stretch: 1; background: transparent; }
+                    Rectangle {
+                        width: 100px; background: #383b45; border-radius: 8px;
+                        Text { text: root.pt ? "Cancelar" : "Cancel"; color: white; horizontal-alignment: center; vertical-alignment: center; }
+                        TouchArea { clicked => { root.create-workspace-open = false; } }
+                    }
+                    Rectangle {
+                        width: 110px; background: #4a638c; border-radius: 8px;
+                        Text { text: root.pt ? "Criar" : "Create"; color: white; horizontal-alignment: center; vertical-alignment: center; }
+                        TouchArea { clicked => {
+                            if root.new-workspace-name != "" {
+                                root.create-workspace(root.new-workspace-name);
+                                root.create-workspace-open = false;
+                            }
+                        } }
+                    }
+                }
             }
         }
     }
