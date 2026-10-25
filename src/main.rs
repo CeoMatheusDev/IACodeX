@@ -398,7 +398,7 @@ fn main() -> Result<(), slint::PlatformError> {
         let mut data = read_providers();
         if !data.is_object() { data = json!({}); }
         let key = if id.is_empty() { name.to_lowercase().replace(' ', "-") } else { id.to_string() };
-        let model_id = if model_id.is_empty() && name == "DeepSeek" { "deepseek-chat".into() } else { model_id };
+
         let mut models = data.get("providers").and_then(|p| p.get(&key))
             .and_then(|p| p.get("models")).and_then(Value::as_array).cloned().unwrap_or_default();
         if let Some(ui) = weak.upgrade() {
