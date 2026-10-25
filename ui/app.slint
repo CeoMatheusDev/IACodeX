@@ -6,6 +6,9 @@ export component AppWindow inherits Window {
     height: 726px;
     background: root.bg-main;
     callback send-prompt(string);
+    callback cancel-prompt();
+    in-out property <string> response-text: "";
+    in-out property <bool> is-streaming: false;
     callback open-configuration-file();
     callback create-provider(string, string, string, string, string, string, string, string, string);
     pure callback model-matches(string, string) -> bool;
@@ -229,6 +232,19 @@ export component AppWindow inherits Window {
                             Text { text: "Standard mode       /       Plan mode"; color: root.fg-main; vertical-alignment: center; horizontal-alignment: center; }
                             TouchArea { clicked => { root.active-mode = root.active-mode == "Standard mode" ? "Plan mode" : "Standard mode"; root.persist-settings(); root.mode-open = false; } }
                         }
+                        if root.response-text != "": Rectangle {
+                            height: min(190px, max(64px, root.response-text.length * 0.42px));
+                            background: root.bg-panel;
+                            border-radius: 10px;
+                            ScrollView {
+                                Text {
+                                    text: root.response-text;
+                                    color: root.fg-main;
+                                    wrap: word-wrap;
+                                    font-size: 13px;
+                                }
+                            }
+                        }
                         Rectangle {
                             height: 124px;
                             background: root.session-ready && root.active-workspace != "" ? #252528 : #1e1e22;
@@ -271,12 +287,16 @@ export component AppWindow inherits Window {
                                     Rectangle {
                                         width: 34px;
                                         height: 34px;
-                                        background: send-area.has-hover ? #536fa4 : #425e91;
+                                        background: root.is-streaming ? #91534f : (send-area.has-hover ? #536fa4 : #425e91);
                                         border-radius: 17px;
-                                        Text { text: "↑"; color: #d3dce9; font-size: 22px; horizontal-alignment: center; vertical-alignment: center; }
+                                        Text { text: root.is-streaming ? "■" : "↑"; color: #d3dce9; font-size: 22px; horizontal-alignment: center; vertical-alignment: center; }
                                         send-area := TouchArea { enabled: root.session-ready && root.active-workspace != "";
                                             clicked => {
-                                                if root.prompt-text != "" && root.session-ready && root.active-workspace != "" {
+                                                if root.is-streaming {
+                                                    root.cancel-prompt();
+                                                } else if root.prompt-text != "" && root.session-ready && root.active-workspace != "" {
+                                                    root.response-text = "";
+                                                    root.is-streaming = true;
                                                     if root.session-ready && root.active-workspace != "" { root.send-prompt(root.prompt-text); }
                                                     root.session-name = root.prompt-text;
                                                     if !root.has-session {
