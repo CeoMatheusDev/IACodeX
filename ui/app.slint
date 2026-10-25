@@ -587,7 +587,7 @@ export component AppWindow inherits Window {
                                         border-radius: 11px; border-width: 1px; border-color: #595963;
                                         background: #393940;
                                         Text { text: (root.pt ? "+ Adicionar provedor" : "+ Add provider"); color: #f0f0f4; font-size: 13px; horizontal-alignment: center; vertical-alignment: center; }
-                                        TouchArea { clicked => { root.provider-name = "DeepSeek"; root.provider-url = "https://api.deepseek.com"; root.provider-model = "deepseek-chat"; root.provider-model-display = ""; root.provider-model-context = ""; root.provider-model-max-output = ""; root.provider-model-added = true; root.provider-model-expanded = false; root.provider-api-key = ""; root.provider-status = ""; root.provider-custom = false; root.provider-id = ""; root.provider-editing-existing = false; root.saved-provider-models = []; root.discovered-models = []; root.provider-editor = true; } }
+                                        TouchArea { clicked => { root.provider-name = ""; root.provider-url = ""; root.provider-model = ""; root.provider-model-display = ""; root.provider-model-context = ""; root.provider-model-max-output = ""; root.provider-model-added = false; root.provider-model-expanded = false; root.provider-api-key = ""; root.provider-status = ""; root.provider-custom = false; root.provider-id = ""; root.provider-editing-existing = false; root.saved-provider-models = []; root.discovered-models = []; root.provider-editor = true; } }
                                     }
                                     Rectangle {
                                         border-radius: 11px; border-width: 1px; border-color: #595963;
@@ -651,7 +651,7 @@ export component AppWindow inherits Window {
 
     if root.settings-open && root.provider-editor: Rectangle {
         background: #050509d9;
-        TouchArea { clicked => { root.provider-editor = false; } }
+        TouchArea { enabled: false; }
         Rectangle {
             width: min(520px, parent.width - 36px);
             height: min(root.provider-custom ? 690px : 590px, parent.height - 36px);
@@ -668,11 +668,6 @@ export component AppWindow inherits Window {
                     height: 34px;
                     Text { text: root.provider-custom ? (root.pt ? "Criar provedor personalizado" : "Create custom provider") : (root.pt ? "Adicionar provedor" : "Add provider"); color: root.fg-main; font-size: 19px; font-weight: 600; vertical-alignment: center; }
                     Rectangle { horizontal-stretch: 1; background: transparent; }
-                    Rectangle {
-                        width: 32px; background: #424249; border-radius: 8px;
-                        Text { text: "×"; color: white; horizontal-alignment: center; vertical-alignment: center; font-size: 20px; }
-                        TouchArea { clicked => { root.provider-editor = false; root.provider-list-open = false; } }
-                    }
                 }
                 if root.provider-custom: VerticalLayout {
                     spacing: 5px;
@@ -846,14 +841,14 @@ export component AppWindow inherits Window {
                         background: #4a638c; border-radius: 9px;
                         Text { text: root.provider-custom ? "Create provider" : "Apply"; color: white; horizontal-alignment: center; vertical-alignment: center; }
                         TouchArea { clicked => {
-                            if root.provider-name != "" && root.provider-url != "" && (!root.provider-custom || root.provider-id != "") {
+                            if root.provider-name != "" && root.provider-url != "" && (root.provider-api-key != "" || root.provider-editing-existing) && (root.saved-provider-models.length > 0 || root.discovered-models.length > 0 || root.provider-model != "") && (!root.provider-custom || root.provider-id != "" || root.provider-editing-existing) {
                                 root.settings-provider = root.provider-name;
                                 root.create-provider(root.provider-id, root.provider-name, root.provider-url, root.provider-protocol, root.provider-api-key, root.provider-model, root.provider-model-display, root.provider-model-context, root.provider-model-max-output);
                                 root.provider-editor = false;
                                 root.provider-list-open = false;
                                 root.persist-settings();
                             } else {
-                                root.provider-status = root.provider-custom ? "Provider ID, name and Base URL are required." : "Provider name and Base URL are required.";
+                                root.provider-status = "Provider name, Base URL, API key and at least one model are required.";
                             }
                         } }
                     }
