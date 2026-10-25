@@ -15,15 +15,14 @@ Aplicativo desktop experimental de assistência à programação em **Rust + Sli
 ```bash
 sudo dnf install gcc pkgconf-pkg-config fontconfig-devel libxkbcommon-devel wayland-devel
 rustup toolchain install 1.99.1
-export DEEPSEEK_API_KEY="SUA_CHAVE"
 cargo check
 cargo test
 cargo run
 ```
 
-Cadastre um provedor DeepSeek em `providers.json`, incluindo um modelo com ID `deepseek-chat`. Na interface, selecione o workspace, clique em **New Session**, selecione o modelo e envie a mensagem.
+Na interface, abra **Settings > Providers**, selecione **DeepSeek** (ou crie um provedor OpenAI-compatível), informe a **API key**, confirme o modelo `deepseek-chat` e clique em **Apply**. Depois selecione um workspace, abra **New Session**, escolha o modelo no chat e envie a mensagem. Não é necessário configurar variáveis de ambiente.
 
-A variável `DEEPSEEK_API_KEY` tem prioridade sobre `api_key` no `providers.json`. Armazenar chaves em JSON é menos seguro. **TODO:** integrar Secret Service/keyring.
+A chave configurada na interface é salva em `~/.config/iacodex/providers.json` e tem prioridade sobre a variável opcional `DEEPSEEK_API_KEY`. No Unix, novos arquivos JSON são gravados com permissões `0600`. **A chave permanece em texto simples:** não compartilhe o arquivo. **TODO:** integrar Secret Service/keyring.
 
 ## Estado e limitações
 
