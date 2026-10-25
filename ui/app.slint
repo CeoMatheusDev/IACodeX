@@ -16,6 +16,7 @@ export component AppWindow inherits Window {
     callback edit-provider(string);
     callback edit-provider-model(string, string);
     in-out property <[string]> discovered-models: [];
+    in-out property <[string]> discovered-model-statuses: [];
     in-out property <[string]> saved-provider-models: [];
     in-out property <bool> provider-loading: false;
     in-out property <int> provider-health: 0;
@@ -787,9 +788,19 @@ export component AppWindow inherits Window {
                     background: root.bg-card; border-radius: 8px;
                     ScrollView {
                         VerticalLayout {
-                            for model in root.discovered-models: Rectangle {
+                            for model[i] in root.discovered-models: Rectangle {
                                 height: 32px; background: root.bg-card;
-                                Text { text: model; color: root.fg-main; font-size: 12px; x: 8px; vertical-alignment: center; }
+                                HorizontalLayout {
+                                    padding-left: 8px; padding-right: 8px; spacing: 8px;
+                                    Rectangle {
+                                        width: 10px; height: 10px; border-radius: 5px;
+                                        background: root.discovered-model-statuses.length > i
+                                            ? (root.discovered-model-statuses[i] == "ok" ? #42cf77
+                                            : root.discovered-model-statuses[i] == "fail" ? #e85e61 : #e5ba4f)
+                                            : #e5ba4f;
+                                    }
+                                    Text { text: model; color: root.fg-main; font-size: 12px; vertical-alignment: center; }
+                                }
                                 TouchArea { clicked => { root.provider-model = model; root.provider-model-added = true; root.provider-status = "Selected: " + model; } }
                             }
                         }
