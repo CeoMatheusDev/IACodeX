@@ -333,6 +333,8 @@ fn main() -> Result<(), slint::PlatformError> {
         }
     });
 
+    let discovered_details: Arc<Mutex<HashMap<String, Value>>> = Arc::new(Mutex::new(HashMap::new()));
+    let discovered_for_fetch = Arc::clone(&discovered_details);
     let weak_for_discovery = app.as_weak();
     let discovery_handle = runtime.handle().clone();
     app.on_fetch_provider_models(move |url, key, protocol| {
@@ -340,6 +342,7 @@ fn main() -> Result<(), slint::PlatformError> {
         let mut key = key.to_string();
         let protocol = protocol.to_string();
         let weak = weak_for_discovery.clone();
+        let discovered_for_task = Arc::clone(&discovered_for_fetch);
         if key.is_empty() {
             let providers = read_providers();
             if let Some(items) = providers.get("providers").and_then(Value::as_object) {
@@ -349,7 +352,7 @@ fn main() -> Result<(), slint::PlatformError> {
             }
         }
         discovery_handle.spawn(async move {
-            let result: Result<Vec<String>, String> = async {
+            let result: Result<Vec<Value>, String> = async {
                 if protocol != "OpenAI-compatible" { return Err("Only OpenAI-compatible discovery is supported.".into()); }
                 if url.trim().is_empty() { return Err("Base URL is required.".into()); }
                 let endpoint = format!("{}/models", url.trim_end_matches('/'));
@@ -361,20 +364,25 @@ fn main() -> Result<(), slint::PlatformError> {
                 let status = response.status();
                 if !status.is_success() { return Err(format!("HTTP {status}: {}", response.text().await.unwrap_or_default().chars().take(150).collect::<String>())); }
                 let json: Value = response.json().await.map_err(|e| e.to_string())?;
-                let mut ids = json.get("data").and_then(Value::as_array)
+                let mut models = json.get("data").and_then(Value::as_array)
                     .ok_or_else(|| "Response does not contain a data array.".to_string())?
-                    .iter().filter_map(|model| model.get("id").and_then(Value::as_str).map(str::to_owned))
+                    .iter().filter(|model| model.get("id").and_then(Value::as_str).is_some()).cloned()
                     .collect::<Vec<_>>();
-                ids.sort();
-                ids.dedup();
-                if ids.is_empty() { return Err("Provider returned no models.".into()); }
-                Ok(ids)
+                models.sort_by(|a,b| a["id"].as_str().cmp(&b["id"].as_str()));
+                models.dedup_by(|a,b| a["id"] == b["id"]);
+                if models.is_empty() { return Err("Provider returned no models.".into()); }
+                Ok(models)
             }.await;
             let _ = slint::invoke_from_event_loop(move || {
                 if let Some(ui) = weak.upgrade() {
                     ui.set_provider_loading(false);
                     match result {
-                        Ok(ids) => {
+                        Ok(models) => {
+                            let ids: Vec<String> = models.iter().filter_map(|m| m.get("id").and_then(Value::as_str).map(str::to_owned)).collect();
+                            if let Ok(mut cache) = discovered_for_task.lock() {
+                                cache.clear();
+                                for model in models { if let Some(id) = model.get("id").and_then(Value::as_str) { cache.insert(id.to_owned(), model.clone()); } }
+                            }
                             ui.set_provider_health(1);
                             ui.set_provider_status(format!("Connected: {} models available. Click a model to select.", ids.len()).into());
                             ui.set_discovered_models(ModelRc::from(Rc::new(VecModel::<slint::SharedString>::from(
@@ -391,6 +399,7 @@ fn main() -> Result<(), slint::PlatformError> {
         });
     });
 
+    let discovered_for_save = Arc::clone(&discovered_details);
     let models_for_create = model_list.clone();
     let weak = app.as_weak();
     app.on_create_provider(move |id, name, url, protocol, api_key, model_id, display, context, max_output| {
@@ -405,8 +414,17 @@ fn main() -> Result<(), slint::PlatformError> {
             for discovered in ui.get_discovered_models().iter() {
                 let discovered = discovered.to_string();
                 if !models.iter().any(|m| m.get("id").and_then(Value::as_str) == Some(discovered.as_str())) {
-                    models.push(json!({"id": discovered, "display_name": discovered,
-                        "context_window": "", "max_output_tokens": "", "supports_thinking": false}));
+                    let metadata = discovered_for_save.lock().ok()
+                        .and_then(|cache| cache.get(&discovered).cloned()).unwrap_or(Value::Null);
+                    let field = |keys: &[&str]| -> String {
+                        keys.iter().find_map(|key| metadata.get(*key)).and_then(|v|
+                            v.as_str().map(str::to_owned).or_else(|| v.as_u64().map(|n| n.to_string()))
+                        ).unwrap_or_default()
+                    };
+                    models.push(json!({"id": discovered, "display_name": field(&["name", "display_name"]),
+                        "context_window": field(&["context_length", "context_window", "max_model_len"]),
+                        "max_output_tokens": field(&["max_output_tokens", "max_completion_tokens", "max_tokens"]),
+                        "supports_thinking": metadata.get("supports_thinking").and_then(Value::as_bool).unwrap_or(false)}));
                 }
             }
         }
