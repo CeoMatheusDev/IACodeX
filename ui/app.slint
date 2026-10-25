@@ -4,7 +4,7 @@ export component AppWindow inherits Window {
     title: "IACodeX — Into the Unknown";
     width: 1280px;
     height: 726px;
-    background: #141416;
+    background: root.bg-main;
     callback send-prompt(string);
     callback save-settings(string, string, string, string, string, string, bool, bool, bool);
     in-out property <bool> plugin-shell: false;
@@ -19,6 +19,17 @@ export component AppWindow inherits Window {
     in-out property <int> settings-tab: 0;
     in-out property <string> settings-language: "English";
     in-out property <string> settings-appearance: "System";
+    in-out property <bool> system-dark: true;
+    property <bool> dark-theme: root.settings-appearance == "Dark" || (root.settings-appearance == "System" && root.system-dark);
+    property <bool> pt: root.settings-language == "Português";
+    property <brush> bg-main: root.dark-theme ? #141416 : #f5f6f9;
+    property <brush> bg-sidebar: root.dark-theme ? #1b1b1d : #e9ecf2;
+    property <brush> bg-panel: root.dark-theme ? #2b2b2e : #ffffff;
+    property <brush> bg-card: root.dark-theme ? #343438 : #eef0f5;
+    property <brush> fg-main: root.dark-theme ? #f3f3f6 : #202633;
+    property <brush> fg-muted: root.dark-theme ? #aaaaaf : #596273;
+    property <brush> outline: root.dark-theme ? #4a4a51 : #cbd1dc;
+
     in-out property <string> settings-enter: "Queue";
     in-out property <string> settings-permission: "Full access";
     in-out property <string> settings-provider: "";
@@ -39,7 +50,7 @@ export component AppWindow inherits Window {
         spacing: 0px;
         if root.show-sidebar: Rectangle {
             width: 282px;
-            background: #1b1b1d;
+            background: root.bg-sidebar;
             border-width: 1px;
             border-color: #27272b;
             VerticalLayout {
@@ -49,7 +60,7 @@ export component AppWindow inherits Window {
                     height: 42px;
                     spacing: 7px;
                     Text { text: "◆"; color: #8ea9e8; font-size: 22px; }
-                    Text { text: "IACodeX"; color: #f5f5f7; font-size: 19px; font-weight: 700; }
+                    Text { text: "IACodeX"; color: root.fg-main; font-size: 19px; font-weight: 700; }
                     Rectangle {
                         width: 54px;
                         height: 15px;
@@ -68,13 +79,13 @@ export component AppWindow inherits Window {
                     border-color: #55565e;
                     border-width: 1px;
                     border-radius: 12px;
-                    Text { text: "New Session"; color: #f1f2f6; horizontal-alignment: center; vertical-alignment: center; font-size: 14px; font-weight: 600; }
+                    Text { text: (root.pt ? "Nova sessão" : "New Session"); color: #f1f2f6; horizontal-alignment: center; vertical-alignment: center; font-size: 14px; font-weight: 600; }
                     new-session-touch := TouchArea { clicked => { root.has-session = false; root.prompt-text = ""; root.session-name = "New Session"; } }
                 }
                 Rectangle { height: 15px; background: #00000000; }
                 HorizontalLayout {
                     height: 34px;
-                    Text { text: "Workspaces"; color: #a7a8b0; font-size: 14px; vertical-alignment: center; }
+                    Text { text: (root.pt ? "Espaços de trabalho" : "Workspaces"); color: #a7a8b0; font-size: 14px; vertical-alignment: center; }
                     Rectangle { horizontal-stretch: 1; background: #00000000; }
                     Text { text: "+"; color: #c9cbd4; font-size: 23px; vertical-alignment: center; }
                 }
@@ -84,7 +95,7 @@ export component AppWindow inherits Window {
                     border-radius: 10px;
                     border-width: 1px;
                     border-color: #39445c;
-                    Text { text: "No projects yet"; color: #b9c9e9; font-size: 13px; horizontal-alignment: center; vertical-alignment: center; }
+                    Text { text: (root.pt ? "Nenhum projeto ainda" : "No projects yet"); color: #b9c9e9; font-size: 13px; horizontal-alignment: center; vertical-alignment: center; }
                 }
                                 Rectangle { vertical-stretch: 1; background: #00000000; }
                 Rectangle {
@@ -93,13 +104,13 @@ export component AppWindow inherits Window {
                     border-radius: 10px;
                     border-width: 1px;
                     border-color: #465675;
-                    Text { text: "Settings"; color: #dce5f8; horizontal-alignment: center; vertical-alignment: center; font-size: 14px; }
+                    Text { text: (root.pt ? "Configurações" : "Settings"); color: #dce5f8; horizontal-alignment: center; vertical-alignment: center; font-size: 14px; }
                     TouchArea { clicked => { root.settings-tab = 0; root.settings-open = true; } }
                 }
             }
         }
         Rectangle {
-            background: #141416;
+            background: root.bg-main;
             VerticalLayout {
                 padding: 0px;
                 spacing: 0px;
@@ -121,7 +132,7 @@ export component AppWindow inherits Window {
                             alignment: center;
                             spacing: 10px;
                             
-                            Text { text: root.has-session ? root.session-name : "Into the Unknown"; color: #f0f0f3; font-size: 24px; vertical-alignment: center; }
+                            Text { text: root.has-session ? root.session-name : "Into the Unknown"; color: root.fg-main; font-size: 24px; vertical-alignment: center; }
                             Rectangle {
                                 width: 66px;
                                 height: 22px;
@@ -129,7 +140,7 @@ export component AppWindow inherits Window {
                                 border-color: #465470;
                                 border-width: 1px;
                                 border-radius: 12px;
-                                Text { text: "Preview"; color: #dce3f6; font-size: 11px; horizontal-alignment: center; vertical-alignment: center; }
+                                Text { text: (root.pt ? "Prévia" : "Preview"); color: #dce3f6; font-size: 11px; horizontal-alignment: center; vertical-alignment: center; }
                             }
                         }
                         HorizontalLayout {
@@ -157,12 +168,12 @@ export component AppWindow inherits Window {
                         }
                         if root.workspace-menu-open: Rectangle {
                             height: 30px; background: #2b2b30; border-radius: 6px;
-                            Text { text: "VorynOS       /       Ungrouped"; color: #ededf0; vertical-alignment: center; horizontal-alignment: center; }
+                            Text { text: "VorynOS       /       Ungrouped"; color: root.fg-main; vertical-alignment: center; horizontal-alignment: center; }
                             TouchArea { clicked => { root.active-workspace = root.active-workspace == "VorynOS" ? "Ungrouped" : "VorynOS"; root.workspace-menu-open = false; } }
                         }
                         if root.mode-open: Rectangle {
                             height: 30px; background: #2b2b30; border-radius: 6px;
-                            Text { text: "Standard mode       /       Plan mode"; color: #ededf0; vertical-alignment: center; horizontal-alignment: center; }
+                            Text { text: "Standard mode       /       Plan mode"; color: root.fg-main; vertical-alignment: center; horizontal-alignment: center; }
                             TouchArea { clicked => { root.active-mode = root.active-mode == "Standard mode" ? "Plan mode" : "Standard mode"; root.persist-settings(); root.mode-open = false; } }
                         }
                         Rectangle {
@@ -176,7 +187,7 @@ export component AppWindow inherits Window {
                                 spacing: 4px;
                                 LineEdit {
                                     text <=> root.prompt-text;
-                                    placeholder-text: "Describe what you want to build";
+                                    placeholder-text: (root.pt ? "Descreva o que deseja criar" : "Describe what you want to build");
                                     height: 64px;
                                     font-size: 15px;
                                 }
@@ -224,12 +235,12 @@ export component AppWindow inherits Window {
                         }
                         if root.model-open: Rectangle {
                             height: 30px; background: #2b2b30; border-radius: 6px;
-                            Text { text: "deepseek-v4-flash:free   /   Custom model"; color: #ededf0; horizontal-alignment: center; vertical-alignment: center; }
+                            Text { text: "deepseek-v4-flash:free   /   Custom model"; color: root.fg-main; horizontal-alignment: center; vertical-alignment: center; }
                             TouchArea { clicked => { root.active-model = root.active-model == "deepseek-v4-flash:free" ? "Custom model" : "deepseek-v4-flash:free"; root.model-open = false; } }
                         }
                         if root.access-open: Rectangle {
                             height: 30px; background: #2b2b30; border-radius: 6px;
-                            Text { text: root.settings-permission + " (interface preference only)"; color: #ededf0; horizontal-alignment: center; vertical-alignment: center; }
+                            Text { text: root.settings-permission + " (interface preference only)"; color: root.fg-main; horizontal-alignment: center; vertical-alignment: center; }
                             TouchArea { clicked => { root.access-open = false; } }
                         }
                     }
@@ -247,7 +258,7 @@ export component AppWindow inherits Window {
             height: min(678px, parent.height - 48px);
             x: (parent.width - self.width) / 2;
             y: (parent.height - self.height) / 2;
-            background: #2b2b2e;
+            background: root.bg-panel;
             border-radius: 22px;
             border-width: 1px;
             border-color: #414146;
@@ -257,11 +268,11 @@ export component AppWindow inherits Window {
                 spacing: 18px;
                 HorizontalLayout {
                     height: 28px;
-                    Text { text: "Settings"; color: #f3f3f6; font-size: 17px; vertical-alignment: center; }
+                    Text { text: (root.pt ? "Configurações" : "Settings"); color: root.fg-main; font-size: 17px; vertical-alignment: center; }
                     Rectangle { horizontal-stretch: 1; background: transparent; }
                     Rectangle {
                         width: 175px; background: #343439; border-radius: 14px;
-                        Text { text: "Saved preferences"; color: #c5c5ce; font-size: 11px; horizontal-alignment: center; vertical-alignment: center; }
+                        Text { text: (root.pt ? "Preferências salvas" : "Saved preferences"); color: #c5c5ce; font-size: 11px; horizontal-alignment: center; vertical-alignment: center; }
                     }
                     Rectangle {
                         width: 34px; background: transparent;
@@ -289,15 +300,15 @@ export component AppWindow inherits Window {
                             spacing: 12px;
                             if root.settings-tab == 0: VerticalLayout {
                                 spacing: 13px;
-                                Text { text: "General"; color: #f3f3f6; font-size: 19px; font-weight: 600; }
-                                Text { text: "Default settings for new sessions"; color: #a9a9b3; font-size: 12px; }
+                                Text { text: (root.pt ? "Geral" : "General"); color: root.fg-main; font-size: 19px; font-weight: 600; }
+                                Text { text: (root.pt ? "Configurações padrão para novas sessões" : "Default settings for new sessions"); color: root.fg-muted; font-size: 12px; }
                                 Rectangle {
-                                    height: 67px; background: #323236; border-radius: 10px;
+                                    height: 67px; background: root.bg-card; border-radius: 10px;
                                     HorizontalLayout {
                                         padding: 12px; spacing: 8px;
                                         VerticalLayout {
-                                            Text { text: "Agent preset"; color: #eeeeef; font-size: 14px; }
-                                            Text { text: "Choose the default agent mode"; color: #a7a7b0; font-size: 12px; }
+                                            Text { text: (root.pt ? "Perfil de agente" : "Agent preset"); color: root.fg-main; font-size: 14px; }
+                                            Text { text: (root.pt ? "Escolha o modo padrão do agente" : "Choose the default agent mode"); color: root.fg-muted; font-size: 12px; }
                                         }
                                         Rectangle { horizontal-stretch: 1; background: transparent; }
                                         Rectangle {
@@ -308,12 +319,12 @@ export component AppWindow inherits Window {
                                     }
                                 }
                                 Rectangle {
-                                    height: 67px; background: #323236; border-radius: 10px;
+                                    height: 67px; background: root.bg-card; border-radius: 10px;
                                     HorizontalLayout {
                                         padding: 12px; spacing: 8px;
                                         VerticalLayout {
-                                            Text { text: "Permission"; color: #eeeeef; font-size: 14px; }
-                                            Text { text: "Default permission level"; color: #a7a7b0; font-size: 12px; }
+                                            Text { text: (root.pt ? "Permissão" : "Permission"); color: root.fg-main; font-size: 14px; }
+                                            Text { text: (root.pt ? "Nível de permissão padrão" : "Default permission level"); color: root.fg-muted; font-size: 12px; }
                                         }
                                         Rectangle { horizontal-stretch: 1; background: transparent; }
                                         Rectangle {
@@ -324,10 +335,10 @@ export component AppWindow inherits Window {
                                     }
                                 }
                                 Rectangle {
-                                    height: 56px; background: #323236; border-radius: 10px;
+                                    height: 56px; background: root.bg-card; border-radius: 10px;
                                     HorizontalLayout {
                                         padding: 12px;
-                                        Text { text: "Language"; color: #eeeeef; font-size: 14px; vertical-alignment: center; }
+                                        Text { text: (root.pt ? "Idioma" : "Language"); color: root.fg-main; font-size: 14px; vertical-alignment: center; }
                                         Rectangle { horizontal-stretch: 1; background: transparent; }
                                         Rectangle {
                                             width: 145px; background: #414148; border-radius: 18px;
@@ -336,7 +347,7 @@ export component AppWindow inherits Window {
                                         }
                                     }
                                 }
-                                Text { text: "Appearance"; color: #eeeeef; font-size: 14px; }
+                                Text { text: (root.pt ? "Aparência" : "Appearance"); color: root.fg-main; font-size: 14px; }
                                 HorizontalLayout {
                                     height: 82px; spacing: 9px;
                                     for theme in ["Light", "Dark", "System"]: Rectangle {
@@ -344,15 +355,15 @@ export component AppWindow inherits Window {
                                         border-width: 1px;
                                         border-color: root.settings-appearance == theme ? #9da7c4 : #4b4b51;
                                         background: root.settings-appearance == theme ? #414149 : #333337;
-                                        Text { text: theme; color: #eeeeef; font-size: 14px; horizontal-alignment: center; vertical-alignment: center; }
+                                        Text { text: theme; color: root.fg-main; font-size: 14px; horizontal-alignment: center; vertical-alignment: center; }
                                         TouchArea { clicked => { root.settings-appearance = theme; root.persist-settings(); } }
                                     }
                                 }
                                 Rectangle {
-                                    height: 62px; background: #323236; border-radius: 10px;
+                                    height: 62px; background: root.bg-card; border-radius: 10px;
                                     HorizontalLayout {
                                         padding: 12px;
-                                        Text { text: "Enter behavior while busy"; color: #eeeeef; font-size: 13px; vertical-alignment: center; }
+                                        Text { text: (root.pt ? "Comportamento do Enter durante execução" : "Enter behavior while busy"); color: root.fg-main; font-size: 13px; vertical-alignment: center; }
                                         Rectangle { horizontal-stretch: 1; background: transparent; }
                                         Rectangle {
                                             width: 120px; background: #414148; border-radius: 18px;
@@ -364,30 +375,30 @@ export component AppWindow inherits Window {
                             }
                             if root.settings-tab == 1: VerticalLayout {
                                 spacing: 14px;
-                                Text { text: "Models"; color: #f3f3f6; font-size: 19px; font-weight: 600; }
-                                Text { text: "Add a provider to configure its API and available models."; color: #aaaaaf; font-size: 12px; }
+                                Text { text: (root.pt ? "Modelos" : "Models"); color: root.fg-main; font-size: 19px; font-weight: 600; }
+                                Text { text: (root.pt ? "Adicione um provedor para configurar a API e os modelos." : "Add a provider to configure its API and available models."); color: root.fg-muted; font-size: 12px; }
                                 if root.settings-provider != "": Rectangle {
-                                    height: 56px; background: #323236; border-radius: 11px;
-                                    border-width: 1px; border-color: #48484e;
+                                    height: 56px; background: root.bg-card; border-radius: 11px;
+                                    border-width: 1px; border-color: root.outline;
                                     HorizontalLayout {
                                         padding: 12px; spacing: 8px;
-                                        Text { text: root.settings-provider; color: #f2f2f4; font-size: 14px; vertical-alignment: center; }
+                                        Text { text: root.settings-provider; color: root.fg-main; font-size: 14px; vertical-alignment: center; }
                                         Rectangle { horizontal-stretch: 1; background: transparent; }
-                                        Text { text: "Not configured"; color: #aeb1bc; font-size: 12px; vertical-alignment: center; }
+                                        Text { text: (root.pt ? "Não configurado" : "Not configured"); color: #aeb1bc; font-size: 12px; vertical-alignment: center; }
                                         Rectangle {
                                             width: 66px; background: #414148; border-radius: 12px;
-                                            Text { text: "Remove"; color: #f0d3d5; font-size: 11px; horizontal-alignment: center; vertical-alignment: center; }
+                                            Text { text: (root.pt ? "Remover" : "Remove"); color: #f0d3d5; font-size: 11px; horizontal-alignment: center; vertical-alignment: center; }
                                             TouchArea { clicked => { root.settings-provider = ""; root.provider-editor = false; root.persist-settings(); } }
                                         }
                                     }
                                 }
                                 if root.settings-provider == "": Rectangle {
-                                    height: 170px; background: #303034; border-radius: 12px;
-                                    border-width: 1px; border-color: #45454b;
+                                    height: 170px; background: root.bg-card; border-radius: 12px;
+                                    border-width: 1px; border-color: root.outline;
                                     VerticalLayout {
                                         alignment: center; spacing: 8px;
-                                        Text { text: "No providers configured"; color: #e5e5ea; font-size: 15px; horizontal-alignment: center; }
-                                        Text { text: "Add a provider or create a custom one to get started."; color: #a5a5af; font-size: 12px; horizontal-alignment: center; }
+                                        Text { text: (root.pt ? "Nenhum provedor configurado" : "No providers configured"); color: #e5e5ea; font-size: 15px; horizontal-alignment: center; }
+                                        Text { text: (root.pt ? "Adicione ou crie um provedor personalizado." : "Add a provider or create a custom one to get started."); color: #a5a5af; font-size: 12px; horizontal-alignment: center; }
                                     }
                                 }
                                 HorizontalLayout {
@@ -395,49 +406,49 @@ export component AppWindow inherits Window {
                                     Rectangle {
                                         border-radius: 11px; border-width: 1px; border-color: #595963;
                                         background: #393940;
-                                        Text { text: "+ Add provider"; color: #f0f0f4; font-size: 13px; horizontal-alignment: center; vertical-alignment: center; }
+                                        Text { text: (root.pt ? "+ Adicionar provedor" : "+ Add provider"); color: #f0f0f4; font-size: 13px; horizontal-alignment: center; vertical-alignment: center; }
                                         TouchArea { clicked => { root.provider-name = "DeepSeek"; root.provider-editor = true; } }
                                     }
                                     Rectangle {
                                         border-radius: 11px; border-width: 1px; border-color: #595963;
                                         background: #393940;
-                                        Text { text: "+ Add a custom provider"; color: #f0f0f4; font-size: 13px; horizontal-alignment: center; vertical-alignment: center; }
+                                        Text { text: (root.pt ? "+ Criar provedor personalizado" : "+ Add a custom provider"); color: #f0f0f4; font-size: 13px; horizontal-alignment: center; vertical-alignment: center; }
                                         TouchArea { clicked => { root.provider-name = ""; root.provider-editor = true; } }
                                     }
                                 }
                                 if root.provider-editor: VerticalLayout {
                                     spacing: 8px;
-                                    Text { text: "Provider name"; color: #dedee5; font-size: 12px; }
-                                    LineEdit { text <=> root.provider-name; placeholder-text: "Provider name"; }
-                                    Text { text: "Base URL (optional)"; color: #dedee5; font-size: 12px; }
+                                    Text { text: (root.pt ? "Nome do provedor" : "Provider name"); color: #dedee5; font-size: 12px; }
+                                    LineEdit { text <=> root.provider-name; placeholder-text: (root.pt ? "Nome do provedor" : "Provider name"); }
+                                    Text { text: (root.pt ? "URL base (opcional)" : "Base URL (optional)"); color: #dedee5; font-size: 12px; }
                                     LineEdit { text <=> root.provider-url; placeholder-text: "https://api.example.com/v1"; }
-                                    Text { text: "Model ID (optional)"; color: #dedee5; font-size: 12px; }
+                                    Text { text: (root.pt ? "ID do modelo (opcional)" : "Model ID (optional)"); color: #dedee5; font-size: 12px; }
                                     LineEdit { text <=> root.provider-model; placeholder-text: "model-id"; }
                                     Rectangle {
                                         height: 38px; background: #465a83; border-radius: 9px;
-                                        Text { text: "Save provider"; color: white; horizontal-alignment: center; vertical-alignment: center; }
+                                        Text { text: (root.pt ? "Salvar provedor" : "Save provider"); color: white; horizontal-alignment: center; vertical-alignment: center; }
                                         TouchArea { clicked => { if root.provider-name != "" { root.settings-provider = root.provider-name; root.provider-editor = false; root.persist-settings(); } } }
                                     }
                                 }
                             }
                             if root.settings-tab == 2: VerticalLayout {
                                 spacing: 12px;
-                                Text { text: "Plugins"; color: #f3f3f6; font-size: 19px; font-weight: 600; }
-                                Text { text: "Enable or disable plugin preferences. Runtime integrations are not yet available."; color: #aaaaaf; font-size: 12px; wrap: word-wrap; }
+                                Text { text: (root.pt ? "Plugins" : "Plugins"); color: root.fg-main; font-size: 19px; font-weight: 600; }
+                                Text { text: (root.pt ? "Ative ou desative as preferências de plugins. Integração pendente." : "Enable or disable plugin preferences. Runtime integrations are not yet available."); color: root.fg-muted; font-size: 12px; wrap: word-wrap; }
                                 for plugin[i] in ["Shell", "Agent loop", "Web search"]: Rectangle {
-                                    height: 74px; background: #343438; border-radius: 12px;
-                                    border-width: 1px; border-color: #4a4a51;
+                                    height: 74px; background: root.bg-card; border-radius: 12px;
+                                    border-width: 1px; border-color: root.outline;
                                     HorizontalLayout {
                                         padding: 12px; spacing: 10px;
                                         VerticalLayout {
-                                            Text { text: plugin; color: #eeeeef; font-size: 15px; font-weight: 600; }
-                                            Text { text: "Preference only — integration pending"; color: #a7a7b0; font-size: 12px; }
+                                            Text { text: plugin; color: root.fg-main; font-size: 15px; font-weight: 600; }
+                                            Text { text: (root.pt ? "Apenas preferência — integração pendente" : "Preference only — integration pending"); color: root.fg-muted; font-size: 12px; }
                                         }
                                         Rectangle { horizontal-stretch: 1; background: transparent; }
                                         Rectangle {
-                                            width: 80px; background: (i == 0 ? root.plugin-shell : i == 1 ? root.plugin-agent-loop : root.plugin-web-search) ? #49648b : #45454b;
+                                            width: 80px; background: (i == 0 ? root.plugin-shell : i == 1 ? root.plugin-agent-loop : root.plugin-web-search) ? #49648b : root.outline;
                                             border-radius: 12px;
-                                            Text { text: (i == 0 ? root.plugin-shell : i == 1 ? root.plugin-agent-loop : root.plugin-web-search) ? "On" : "Off"; color: #eeeeef; horizontal-alignment: center; vertical-alignment: center; }
+                                            Text { text: (i == 0 ? root.plugin-shell : i == 1 ? root.plugin-agent-loop : root.plugin-web-search) ? "On" : "Off"; color: root.fg-main; horizontal-alignment: center; vertical-alignment: center; }
                                             TouchArea { clicked => {
                                                 if i == 0 { root.plugin-shell = !root.plugin-shell; }
                                                 else if i == 1 { root.plugin-agent-loop = !root.plugin-agent-loop; }
@@ -450,14 +461,14 @@ export component AppWindow inherits Window {
                             }
                             if root.settings-tab == 3: VerticalLayout {
                                 spacing: 12px;
-                                Text { text: "Agent presets"; color: #f3f3f6; font-size: 19px; font-weight: 600; }
-                                Text { text: "Choose a preset for future sessions (preview)."; color: #aaaaaf; font-size: 12px; }
+                                Text { text: (root.pt ? "Perfis de agente" : "Agent presets"); color: root.fg-main; font-size: 19px; font-weight: 600; }
+                                Text { text: (root.pt ? "Escolha um perfil para as próximas sessões." : "Choose a preset for future sessions (preview)."); color: root.fg-muted; font-size: 12px; }
                                 for preset in ["Standard mode", "PTC mode", "Minimal mode", "Creator mode"]: Rectangle {
-                                    height: 66px; background: #343438; border-radius: 12px;
-                                    border-width: 1px; border-color: root.active-mode == preset ? #8d9bbd : #4a4a51;
+                                    height: 66px; background: root.bg-card; border-radius: 12px;
+                                    border-width: 1px; border-color: root.active-mode == preset ? #8d9bbd : root.outline;
                                     HorizontalLayout {
                                         padding: 12px;
-                                        Text { text: preset; color: #eeeeef; font-size: 14px; vertical-alignment: center; }
+                                        Text { text: preset; color: root.fg-main; font-size: 14px; vertical-alignment: center; }
                                         Rectangle { horizontal-stretch: 1; background: transparent; }
                                         Text { text: root.active-mode == preset ? "Selected" : "Select"; color: #b8c4e1; font-size: 12px; vertical-alignment: center; }
                                     }
