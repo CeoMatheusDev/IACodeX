@@ -304,10 +304,31 @@ fn main() -> Result<(), slint::PlatformError> {
             ui.set_provider_custom(true);
             ui.set_provider_model(provider.get("models").and_then(Value::as_array)
                 .and_then(|models| models.first()).and_then(|m| m.get("id")).and_then(Value::as_str).unwrap_or("").into());
-            ui.set_provider_model_added(true);
+            ui.set_provider_model_added(false);
+            ui.set_provider_editing_existing(true);
+            let saved = provider.get("models").and_then(Value::as_array).cloned().unwrap_or_default();
+            ui.set_saved_provider_models(ModelRc::from(Rc::new(VecModel::<slint::SharedString>::from(
+                saved.iter().filter_map(|m| m.get("id").and_then(Value::as_str).map(Into::into)).collect::<Vec<_>>()
+            ))));
             ui.set_discovered_models(ModelRc::from(Rc::new(VecModel::<slint::SharedString>::from(Vec::new()))));
             ui.set_provider_status("Leave API key empty to keep the saved key.".into());
             ui.set_provider_editor(true);
+        }
+    });
+
+    let weak_for_model_edit = app.as_weak();
+    app.on_edit_provider_model(move |provider_id, model_id| {
+        let providers = read_providers();
+        let model = providers.get("providers").and_then(|p| p.get(provider_id.as_str()))
+            .and_then(|p| p.get("models")).and_then(Value::as_array)
+            .and_then(|models| models.iter().find(|m| m.get("id").and_then(Value::as_str) == Some(model_id.as_str())));
+        if let (Some(ui), Some(model)) = (weak_for_model_edit.upgrade(), model) {
+            ui.set_provider_model(model_id);
+            ui.set_provider_model_display(model.get("display_name").and_then(Value::as_str).unwrap_or("").into());
+            ui.set_provider_model_context(model.get("context_window").and_then(Value::as_str).unwrap_or("").into());
+            ui.set_provider_model_max_output(model.get("max_output_tokens").and_then(Value::as_str).unwrap_or("").into());
+            ui.set_provider_model_added(true);
+            ui.set_provider_model_expanded(true);
         }
     });
 
@@ -377,13 +398,25 @@ fn main() -> Result<(), slint::PlatformError> {
         if !data.is_object() { data = json!({}); }
         let key = if id.is_empty() { name.to_lowercase().replace(' ', "-") } else { id.to_string() };
         let model_id = if model_id.is_empty() && name == "DeepSeek" { "deepseek-chat".into() } else { model_id };
-        let models = if model_id.is_empty() {
-            json!([])
-        } else {
-            json!([{ "id": model_id.as_str(), "display_name": display.as_str(),
+        let mut models = data.get("providers").and_then(|p| p.get(&key))
+            .and_then(|p| p.get("models")).and_then(Value::as_array).cloned().unwrap_or_default();
+        if let Some(ui) = weak.upgrade() {
+            for discovered in ui.get_discovered_models().iter() {
+                let discovered = discovered.to_string();
+                if !models.iter().any(|m| m.get("id").and_then(Value::as_str) == Some(discovered.as_str())) {
+                    models.push(json!({"id": discovered, "display_name": discovered,
+                        "context_window": "", "max_output_tokens": "", "supports_thinking": false}));
+                }
+            }
+        }
+        if !model_id.is_empty() {
+            let entry = json!({"id": model_id.as_str(), "display_name": display.as_str(),
                 "context_window": context.as_str(), "max_output_tokens": max_output.as_str(),
-                "supports_thinking": false }])
-        };
+                "supports_thinking": false});
+            if let Some(existing) = models.iter_mut().find(|m| m.get("id").and_then(Value::as_str) == Some(model_id.as_str())) {
+                *existing = entry;
+            } else { models.push(entry); }
+        }
         if !data.get("providers").map(Value::is_object).unwrap_or(false) {
             data["providers"] = json!({});
         }
@@ -398,14 +431,16 @@ fn main() -> Result<(), slint::PlatformError> {
             eprintln!("Cannot save provider: {error}");
             return;
         }
-        if !model_id.is_empty() {
-            let value: slint::SharedString = model_id.clone();
-            if !models_for_create.iter().any(|existing| existing == value) {
-                models_for_create.push(value);
-            }
-        }
+        models_for_create.set_vec(
+            read_providers().get("providers").and_then(Value::as_object).into_iter()
+                .flat_map(|providers| providers.values())
+                .flat_map(|provider| provider.get("models").and_then(Value::as_array).into_iter().flatten())
+                .filter_map(|m| m.get("id").and_then(Value::as_str).map(Into::into))
+                .collect::<Vec<slint::SharedString>>()
+        );
         if let Some(app) = weak.upgrade() {
             if !model_id.is_empty() { app.set_active_model(model_id); }
+            app.set_provider_health(0);
         }
     });
     app.on_open_configuration_file(|| {
