@@ -231,8 +231,10 @@ fn main() -> Result<(), slint::PlatformError> {
         }
     }
     if let Some(providers) = read_providers().get("providers").and_then(Value::as_object) {
+        let mut names = Vec::new();
         for details in providers.values() {
             if let Some(name) = details.get("name").and_then(Value::as_str) {
+                names.push(name.into());
                 if app.get_settings_provider().is_empty() {
                     app.set_settings_provider(name.into());
                 }
@@ -247,6 +249,7 @@ fn main() -> Result<(), slint::PlatformError> {
                 }
             }
         }
+        app.set_configured_providers(ModelRc::from(Rc::new(VecModel::<slint::SharedString>::from(names))));
     }
     app.on_save_settings(|mode, permission, language, appearance, enter, provider, shell, agent_loop, web_search| {
         let Some(path) = config_path() else { eprintln!("Cannot determine configuration directory"); return; };
@@ -468,6 +471,11 @@ fn main() -> Result<(), slint::PlatformError> {
                 .collect::<Vec<slint::SharedString>>()
         );
         if let Some(app) = weak.upgrade() {
+            let names = read_providers().get("providers").and_then(Value::as_object)
+                .into_iter().flat_map(|providers| providers.values())
+                .filter_map(|p| p.get("name").and_then(Value::as_str).map(Into::into))
+                .collect::<Vec<slint::SharedString>>();
+            app.set_configured_providers(ModelRc::from(Rc::new(VecModel::from(names))));
             if !model_id.is_empty() { app.set_active_model(model_id); }
             app.set_provider_health(0);
         }
