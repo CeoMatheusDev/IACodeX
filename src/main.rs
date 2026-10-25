@@ -323,6 +323,7 @@ fn main() -> Result<(), slint::PlatformError> {
             .and_then(|p| p.get("models")).and_then(Value::as_array)
             .and_then(|models| models.iter().find(|m| m.get("id").and_then(Value::as_str) == Some(model_id.as_str())));
         if let (Some(ui), Some(model)) = (weak_for_model_edit.upgrade(), model) {
+            ui.set_provider_original_model(model_id.clone());
             ui.set_provider_model(model_id);
             ui.set_provider_model_display(model.get("display_name").and_then(Value::as_str).unwrap_or("").into());
             ui.set_provider_model_context(model.get("context_window").and_then(Value::as_str).unwrap_or("").into());
@@ -409,9 +410,17 @@ fn main() -> Result<(), slint::PlatformError> {
                 }
             }
         }
+        let original_id = weak.upgrade().map(|ui| ui.get_provider_original_model().to_string()).unwrap_or_default();
+        if !original_id.is_empty() && original_id != model_id.as_str() {
+            models.retain(|m| m.get("id").and_then(Value::as_str) != Some(original_id.as_str()));
+        }
         if !model_id.is_empty() {
-            let entry = json!({"id": model_id.as_str(), "display_name": display.as_str(),
-                "context_window": context.as_str(), "max_output_tokens": max_output.as_str(),
+            let old = models.iter().find(|m| m.get("id").and_then(Value::as_str) == Some(model_id.as_str()));
+            let display_value = if display.is_empty() { old.and_then(|m| m.get("display_name")).and_then(Value::as_str).unwrap_or(model_id.as_str()) } else { display.as_str() };
+            let context_value = if context.is_empty() { old.and_then(|m| m.get("context_window")).and_then(Value::as_str).unwrap_or("") } else { context.as_str() };
+            let output_value = if max_output.is_empty() { old.and_then(|m| m.get("max_output_tokens")).and_then(Value::as_str).unwrap_or("") } else { max_output.as_str() };
+            let entry = json!({"id": model_id.as_str(), "display_name": display_value,
+                "context_window": context_value, "max_output_tokens": output_value,
                 "supports_thinking": false});
             if let Some(existing) = models.iter_mut().find(|m| m.get("id").and_then(Value::as_str) == Some(model_id.as_str())) {
                 *existing = entry;
