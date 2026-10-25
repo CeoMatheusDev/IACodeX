@@ -6,6 +6,7 @@ export component AppWindow inherits Window {
     height: 726px;
     background: root.bg-main;
     callback send-prompt(string);
+    callback open-configuration-file();
     callback save-settings(string, string, string, string, string, string, bool, bool, bool);
     in-out property <bool> plugin-shell: false;
     in-out property <bool> plugin-agent-loop: false;
@@ -252,7 +253,7 @@ export component AppWindow inherits Window {
     }
     if root.settings-open: Rectangle {
         background: #08080bc9;
-        TouchArea { clicked => { root.settings-open = false; } }
+        TouchArea { clicked => { root.persist-settings(); root.settings-open = false; } }
         Rectangle {
             width: min(800px, parent.width - 48px);
             height: min(678px, parent.height - 48px);
@@ -272,12 +273,13 @@ export component AppWindow inherits Window {
                     Rectangle { horizontal-stretch: 1; background: transparent; }
                     Rectangle {
                         width: 175px; background: #343439; border-radius: 14px;
-                        Text { text: (root.pt ? "Preferências salvas" : "Saved preferences"); color: #c5c5ce; font-size: 11px; horizontal-alignment: center; vertical-alignment: center; }
+                        Text { text: (root.pt ? "Abrir arquivo de configuração" : "Open configuration file"); color: #c5c5ce; font-size: 11px; horizontal-alignment: center; vertical-alignment: center; }
+                        TouchArea { clicked => { root.persist-settings(); root.open-configuration-file(); } }
                     }
                     Rectangle {
                         width: 34px; background: transparent;
                         Text { text: "×"; color: #ededf2; font-size: 25px; horizontal-alignment: center; vertical-alignment: center; }
-                        TouchArea { clicked => { root.settings-open = false; } }
+                        TouchArea { clicked => { root.persist-settings(); root.settings-open = false; } }
                     }
                 }
                 HorizontalLayout {
