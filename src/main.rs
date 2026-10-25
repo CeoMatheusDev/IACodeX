@@ -96,6 +96,16 @@ fn save_json(path: &std::path::Path, value: &Value) -> std::io::Result<()> {
     if let Some(parent) = path.parent() { fs::create_dir_all(parent)?; }
     let encoded = serde_json::to_vec_pretty(value)?;
     let tmp = path.with_extension("json.tmp");
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::OpenOptionsExt;
+        use std::io::Write;
+        let mut file = fs::OpenOptions::new().write(true).create(true).truncate(true)
+            .mode(0o600).open(&tmp)?;
+        file.write_all(&encoded)?;
+        file.sync_all()?;
+    }
+    #[cfg(not(unix))]
     fs::write(&tmp, encoded)?;
     fs::rename(tmp, path)?;
     Ok(())
