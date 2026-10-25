@@ -12,7 +12,9 @@ export component AppWindow inherits Window {
     callback open-configuration-file();
     callback fetch-provider-models(string, string, string);
     callback edit-provider(string);
+    callback edit-provider-model(string, string);
     in-out property <[string]> discovered-models: [];
+    in-out property <[string]> saved-provider-models: [];
     in-out property <bool> provider-loading: false;
     in-out property <int> provider-health: 0;
     callback create-provider(string, string, string, string, string, string, string, string, string);
@@ -41,6 +43,7 @@ export component AppWindow inherits Window {
     in-out property <string> provider-model-max-output: "";
     in-out property <bool> provider-model-added: false;
     in-out property <bool> provider-model-expanded: false;
+    in-out property <bool> provider-editing-existing: false;
     in-out property <string> provider-protocol: "OpenAI-compatible";
     in-out property <bool> provider-protocol-open: false;
     callback save-settings(string, string, string, string, string, string, bool, bool, bool);
@@ -583,7 +586,7 @@ export component AppWindow inherits Window {
                                         border-radius: 11px; border-width: 1px; border-color: #595963;
                                         background: #393940;
                                         Text { text: (root.pt ? "+ Adicionar provedor" : "+ Add provider"); color: #f0f0f4; font-size: 13px; horizontal-alignment: center; vertical-alignment: center; }
-                                        TouchArea { clicked => { root.provider-name = "DeepSeek"; root.provider-url = "https://api.deepseek.com"; root.provider-model = "deepseek-chat"; root.provider-model-display = ""; root.provider-model-context = ""; root.provider-model-max-output = ""; root.provider-model-added = true; root.provider-model-expanded = false; root.provider-api-key = ""; root.provider-status = ""; root.provider-custom = false; root.provider-id = ""; root.provider-editor = true; } }
+                                        TouchArea { clicked => { root.provider-name = "DeepSeek"; root.provider-url = "https://api.deepseek.com"; root.provider-model = "deepseek-chat"; root.provider-model-display = ""; root.provider-model-context = ""; root.provider-model-max-output = ""; root.provider-model-added = true; root.provider-model-expanded = false; root.provider-api-key = ""; root.provider-status = ""; root.provider-custom = false; root.provider-id = ""; root.provider-editing-existing = false; root.saved-provider-models = []; root.discovered-models = []; root.provider-editor = true; } }
                                     }
                                     Rectangle {
                                         border-radius: 11px; border-width: 1px; border-color: #595963;
@@ -758,6 +761,27 @@ export component AppWindow inherits Window {
                         } }
                     }
                 }
+                if root.saved-provider-models.length > 0: Rectangle {
+                    height: min(152px, root.saved-provider-models.length * 36px);
+                    background: root.bg-card; border-radius: 8px;
+                    ScrollView {
+                        VerticalLayout {
+                            for model in root.saved-provider-models: Rectangle {
+                                height: 34px; background: root.bg-card;
+                                HorizontalLayout {
+                                    padding-left: 8px; padding-right: 8px; spacing: 8px;
+                                    Text { text: model; color: root.fg-main; font-size: 12px; vertical-alignment: center; }
+                                    Rectangle { horizontal-stretch: 1; background: transparent; }
+                                    Rectangle {
+                                        width: 48px; background: #434650; border-radius: 6px;
+                                        Text { text: "Edit"; color: white; font-size: 11px; horizontal-alignment: center; vertical-alignment: center; }
+                                        TouchArea { clicked => { root.edit-provider-model(root.provider-id, model); } }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
                 if root.discovered-models.length > 0: Rectangle {
                     height: min(156px, root.discovered-models.length * 34px);
                     background: root.bg-card; border-radius: 8px;
@@ -806,7 +830,7 @@ export component AppWindow inherits Window {
                 Rectangle {
                     height: 34px; background: #393b45; border-radius: 9px;
                     Text { text: "+ Add model"; color: white; font-size: 13px; horizontal-alignment: center; vertical-alignment: center; }
-                    TouchArea { clicked => { root.provider-model-added = true; root.provider-model-expanded = false; } }
+                    TouchArea { clicked => { root.provider-model-added = true; root.provider-model-expanded = false; root.provider-model = ""; root.provider-model-display = ""; root.provider-model-context = ""; root.provider-model-max-output = ""; } }
                 }
                 if root.provider-status != "": Text { text: root.provider-status; color: root.fg-muted; font-size: 12px; }
                 Rectangle { vertical-stretch: 1; background: transparent; }
