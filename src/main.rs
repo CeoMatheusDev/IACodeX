@@ -12,6 +12,45 @@ fn config_path() -> Option<PathBuf> {
     Some(base.join("iacodex").join("settings.json"))
 }
 
+fn providers_path() -> Option<PathBuf> {
+    Some(config_path()?.with_file_name("providers.json"))
+}
+
+fn read_providers() -> Value {
+    providers_path()
+        .and_then(|path| fs::read_to_string(path).ok())
+        .and_then(|text| serde_json::from_str::<Value>(&text).ok())
+        .filter(|value| value.get("providers").is_some_and(Value::is_object))
+        .unwrap_or_else(|| json!({"providers": {}}))
+}
+
+fn migrate_providers() {
+    let (Some(settings_path), Some(provider_path)) = (config_path(), providers_path()) else { return; };
+    let Ok(text) = fs::read_to_string(&settings_path) else { return; };
+    let Ok(mut settings) = serde_json::from_str::<Value>(&text) else { return; };
+    let Some(legacy) = settings.get("providers").filter(|v| v.is_object()).cloned() else { return; };
+    let mut providers = read_providers();
+    if let (Some(target), Some(source)) = (
+        providers.get_mut("providers").and_then(Value::as_object_mut),
+        legacy.as_object(),
+    ) {
+        for (key, value) in source {
+            target.entry(key.clone()).or_insert_with(|| value.clone());
+        }
+    }
+    if let Err(error) = save_json(&provider_path, &providers) {
+        eprintln!("Cannot migrate providers: {error}");
+        return;
+    }
+    if let Some(obj) = settings.as_object_mut() {
+        obj.remove("providers");
+        obj.insert("provider".into(), json!(""));
+    }
+    if let Err(error) = save_json(&settings_path, &settings) {
+        eprintln!("Cannot clean up legacy provider settings: {error}");
+    }
+}
+
 fn save_json(path: &std::path::Path, value: &Value) -> std::io::Result<()> {
     if let Some(parent) = path.parent() { fs::create_dir_all(parent)?; }
     let encoded = serde_json::to_vec_pretty(value)?;
@@ -66,6 +105,7 @@ fn main() -> Result<(), slint::PlatformError> {
     let detected_dark = system_prefers_dark();
     let app = AppWindow::new()?;
     app.set_system_dark(detected_dark);
+    migrate_providers();
     let model_list = Rc::new(VecModel::<slint::SharedString>::from(Vec::new()));
     app.set_configured_models(ModelRc::from(model_list.clone()));
 
@@ -77,24 +117,27 @@ fn main() -> Result<(), slint::PlatformError> {
             if let Some(v) = string("language") { app.set_settings_language(v.into()); }
             if let Some(v) = string("appearance") { app.set_settings_appearance(v.into()); }
             if let Some(v) = string("enter") { app.set_settings_enter(v.into()); }
-            if let Some(v) = string("provider") { app.set_settings_provider(v.into()); }
-            if let Some(provider) = settings.get("providers").and_then(Value::as_object) {
-                if let Some((_, details)) = provider.iter().next() {
-                    if let Some(name) = details.get("name").and_then(Value::as_str) {
-                        app.set_settings_provider(name.into());
-                    }
-                    if let Some(models) = details.get("models").and_then(Value::as_array) {
-                        for model in models {
-                            if let Some(id) = model.get("id").and_then(Value::as_str) {
-                                model_list.push(id.into());
-                            }
+            if let Some(v) = settings.get("shell").and_then(Value::as_bool) { app.set_plugin_shell(v); }
+            if let Some(v) = settings.get("agent_loop").and_then(Value::as_bool) { app.set_plugin_agent_loop(v); }
+            if let Some(v) = settings.get("web_search").and_then(Value::as_bool) { app.set_plugin_web_search(v); }
+        }
+    }
+    if let Some(providers) = read_providers().get("providers").and_then(Value::as_object) {
+        for details in providers.values() {
+            if let Some(name) = details.get("name").and_then(Value::as_str) {
+                if app.get_settings_provider().is_empty() {
+                    app.set_settings_provider(name.into());
+                }
+            }
+            if let Some(models) = details.get("models").and_then(Value::as_array) {
+                for model in models {
+                    if let Some(id) = model.get("id").and_then(Value::as_str) {
+                        if !model_list.iter().any(|existing| existing.as_str() == id) {
+                            model_list.push(id.into());
                         }
                     }
                 }
             }
-            if let Some(v) = settings.get("shell").and_then(Value::as_bool) { app.set_plugin_shell(v); }
-            if let Some(v) = settings.get("agent_loop").and_then(Value::as_bool) { app.set_plugin_agent_loop(v); }
-            if let Some(v) = settings.get("web_search").and_then(Value::as_bool) { app.set_plugin_web_search(v); }
         }
     }
     app.on_save_settings(|mode, permission, language, appearance, enter, provider, shell, agent_loop, web_search| {
@@ -106,7 +149,9 @@ fn main() -> Result<(), slint::PlatformError> {
         data["language"] = json!(language.as_str());
         data["appearance"] = json!(appearance.as_str());
         data["enter"] = json!(enter.as_str());
-        data["provider"] = json!(provider.as_str());
+        let _ = provider;
+        data["provider"] = json!("");
+        data.as_object_mut().map(|obj| obj.remove("providers"));
         data["shell"] = json!(shell);
         data["agent_loop"] = json!(agent_loop);
         data["web_search"] = json!(web_search);
@@ -117,8 +162,9 @@ fn main() -> Result<(), slint::PlatformError> {
     let weak_for_selection = app.as_weak();
     app.on_select_configured_model(move |model_id| {
         let mut supported = false;
-        if let Some(path) = config_path() {
-            if let Some(data) = read_config(&path) {
+        {
+            let data = read_providers();
+            {
                 if let Some(providers) = data.get("providers").and_then(Value::as_object) {
                     for provider in providers.values() {
                         if let Some(models) = provider.get("models").and_then(Value::as_array) {
@@ -141,8 +187,8 @@ fn main() -> Result<(), slint::PlatformError> {
     let models_for_create = model_list.clone();
     let weak = app.as_weak();
     app.on_create_provider(move |id, name, url, protocol, _api_key, model_id, display, context, max_output| {
-        let Some(path) = config_path() else { return; };
-        let mut data = read_config(&path).unwrap_or_else(|| json!({}));
+        let Some(path) = providers_path() else { return; };
+        let mut data = read_providers();
         if !data.is_object() { data = json!({}); }
         let key = if id.is_empty() { name.to_lowercase().replace(' ', "-") } else { id.to_string() };
         let models = if model_id.is_empty() {
