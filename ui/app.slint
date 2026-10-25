@@ -6,6 +6,15 @@ export component AppWindow inherits Window {
     height: 726px;
     background: #141416;
     callback send-prompt(string);
+    callback save-settings(string, string, string, string, string, string, bool, bool, bool);
+    in-out property <bool> plugin-shell: false;
+    in-out property <bool> plugin-agent-loop: false;
+    in-out property <bool> plugin-web-search: false;
+    in-out property <string> provider-name: "";
+    in-out property <string> provider-url: "";
+    in-out property <string> provider-model: "";
+    in-out property <bool> provider-editor: false;
+    function persist-settings() { root.save-settings(root.active-mode, root.settings-permission, root.settings-language, root.settings-appearance, root.settings-enter, root.settings-provider, root.plugin-shell, root.plugin-agent-loop, root.plugin-web-search); }
     in-out property <bool> settings-open: false;
     in-out property <int> settings-tab: 0;
     in-out property <string> settings-language: "English";
@@ -154,7 +163,7 @@ export component AppWindow inherits Window {
                         if root.mode-open: Rectangle {
                             height: 30px; background: #2b2b30; border-radius: 6px;
                             Text { text: "Standard mode       /       Plan mode"; color: #ededf0; vertical-alignment: center; horizontal-alignment: center; }
-                            TouchArea { clicked => { root.active-mode = root.active-mode == "Standard mode" ? "Plan mode" : "Standard mode"; root.mode-open = false; } }
+                            TouchArea { clicked => { root.active-mode = root.active-mode == "Standard mode" ? "Plan mode" : "Standard mode"; root.persist-settings(); root.mode-open = false; } }
                         }
                         Rectangle {
                             height: 124px;
@@ -183,7 +192,7 @@ export component AppWindow inherits Window {
                                     Rectangle {
                                         width: 130px;
                                         background: #00000000;
-                                        Text { text: "Full access ⌄"; color: #d3d4db; font-size: 13px; vertical-alignment: center; }
+                                        Text { text: root.settings-permission + " ⌄"; color: #d3d4db; font-size: 13px; vertical-alignment: center; }
                                         TouchArea { clicked => { root.access-open = !root.access-open; } }
                                     }
                                     Rectangle { horizontal-stretch: 1; background: #00000000; }
@@ -220,7 +229,7 @@ export component AppWindow inherits Window {
                         }
                         if root.access-open: Rectangle {
                             height: 30px; background: #2b2b30; border-radius: 6px;
-                            Text { text: "Full access (visual only — no system permissions)"; color: #ededf0; horizontal-alignment: center; vertical-alignment: center; }
+                            Text { text: root.settings-permission + " (interface preference only)"; color: #ededf0; horizontal-alignment: center; vertical-alignment: center; }
                             TouchArea { clicked => { root.access-open = false; } }
                         }
                     }
@@ -252,7 +261,7 @@ export component AppWindow inherits Window {
                     Rectangle { horizontal-stretch: 1; background: transparent; }
                     Rectangle {
                         width: 175px; background: #343439; border-radius: 14px;
-                        Text { text: "Configuration (preview)"; color: #c5c5ce; font-size: 11px; horizontal-alignment: center; vertical-alignment: center; }
+                        Text { text: "Saved preferences"; color: #c5c5ce; font-size: 11px; horizontal-alignment: center; vertical-alignment: center; }
                     }
                     Rectangle {
                         width: 34px; background: transparent;
@@ -310,7 +319,7 @@ export component AppWindow inherits Window {
                                         Rectangle {
                                             width: 145px; background: #414148; border-radius: 18px;
                                             Text { text: root.settings-permission + " ⌄"; color: #f1f1f4; horizontal-alignment: center; vertical-alignment: center; font-size: 12px; }
-                                            TouchArea { clicked => { root.settings-permission = root.settings-permission == "Full access" ? "Ask first" : "Full access"; } }
+                                            TouchArea { clicked => { root.settings-permission = root.settings-permission == "Full access" ? "Ask first" : "Full access"; root.persist-settings(); } }
                                         }
                                     }
                                 }
@@ -323,7 +332,7 @@ export component AppWindow inherits Window {
                                         Rectangle {
                                             width: 145px; background: #414148; border-radius: 18px;
                                             Text { text: root.settings-language + " ⌄"; color: #f1f1f4; horizontal-alignment: center; vertical-alignment: center; font-size: 12px; }
-                                            TouchArea { clicked => { root.settings-language = root.settings-language == "English" ? "Português" : "English"; } }
+                                            TouchArea { clicked => { root.settings-language = root.settings-language == "English" ? "Português" : "English"; root.persist-settings(); } }
                                         }
                                     }
                                 }
@@ -336,7 +345,7 @@ export component AppWindow inherits Window {
                                         border-color: root.settings-appearance == theme ? #9da7c4 : #4b4b51;
                                         background: root.settings-appearance == theme ? #414149 : #333337;
                                         Text { text: theme; color: #eeeeef; font-size: 14px; horizontal-alignment: center; vertical-alignment: center; }
-                                        TouchArea { clicked => { root.settings-appearance = theme; } }
+                                        TouchArea { clicked => { root.settings-appearance = theme; root.persist-settings(); } }
                                     }
                                 }
                                 Rectangle {
@@ -348,7 +357,7 @@ export component AppWindow inherits Window {
                                         Rectangle {
                                             width: 120px; background: #414148; border-radius: 18px;
                                             Text { text: root.settings-enter + " ⌄"; color: #f1f1f4; horizontal-alignment: center; vertical-alignment: center; font-size: 12px; }
-                                            TouchArea { clicked => { root.settings-enter = root.settings-enter == "Queue" ? "Send" : "Queue"; } }
+                                            TouchArea { clicked => { root.settings-enter = root.settings-enter == "Queue" ? "Send" : "Queue"; root.persist-settings(); } }
                                         }
                                     }
                                 }
@@ -368,7 +377,7 @@ export component AppWindow inherits Window {
                                         Rectangle {
                                             width: 66px; background: #414148; border-radius: 12px;
                                             Text { text: "Remove"; color: #f0d3d5; font-size: 11px; horizontal-alignment: center; vertical-alignment: center; }
-                                            TouchArea { clicked => { root.settings-provider = ""; } }
+                                            TouchArea { clicked => { root.settings-provider = ""; root.provider-editor = false; root.persist-settings(); } }
                                         }
                                     }
                                 }
@@ -387,31 +396,55 @@ export component AppWindow inherits Window {
                                         border-radius: 11px; border-width: 1px; border-color: #595963;
                                         background: #393940;
                                         Text { text: "+ Add provider"; color: #f0f0f4; font-size: 13px; horizontal-alignment: center; vertical-alignment: center; }
-                                        TouchArea { clicked => { root.settings-provider = "New provider"; } }
+                                        TouchArea { clicked => { root.provider-name = "DeepSeek"; root.provider-editor = true; } }
                                     }
                                     Rectangle {
                                         border-radius: 11px; border-width: 1px; border-color: #595963;
                                         background: #393940;
                                         Text { text: "+ Add a custom provider"; color: #f0f0f4; font-size: 13px; horizontal-alignment: center; vertical-alignment: center; }
-                                        TouchArea { clicked => { root.settings-provider = "Custom provider"; } }
+                                        TouchArea { clicked => { root.provider-name = ""; root.provider-editor = true; } }
                                     }
                                 }
-                                if root.settings-provider != "": Text {
-                                    text: "Provider added locally for this session. API configuration is not implemented yet.";
-                                    color: #b9bed1; font-size: 12px; wrap: word-wrap;
+                                if root.provider-editor: VerticalLayout {
+                                    spacing: 8px;
+                                    Text { text: "Provider name"; color: #dedee5; font-size: 12px; }
+                                    LineEdit { text <=> root.provider-name; placeholder-text: "Provider name"; }
+                                    Text { text: "Base URL (optional)"; color: #dedee5; font-size: 12px; }
+                                    LineEdit { text <=> root.provider-url; placeholder-text: "https://api.example.com/v1"; }
+                                    Text { text: "Model ID (optional)"; color: #dedee5; font-size: 12px; }
+                                    LineEdit { text <=> root.provider-model; placeholder-text: "model-id"; }
+                                    Rectangle {
+                                        height: 38px; background: #465a83; border-radius: 9px;
+                                        Text { text: "Save provider"; color: white; horizontal-alignment: center; vertical-alignment: center; }
+                                        TouchArea { clicked => { if root.provider-name != "" { root.settings-provider = root.provider-name; root.provider-editor = false; root.persist-settings(); } } }
+                                    }
                                 }
                             }
                             if root.settings-tab == 2: VerticalLayout {
                                 spacing: 12px;
                                 Text { text: "Plugins"; color: #f3f3f6; font-size: 19px; font-weight: 600; }
-                                Text { text: "Available plugin categories (preview)."; color: #aaaaaf; font-size: 12px; }
-                                for plugin in ["Shell", "Agent loop", "Web search"]: Rectangle {
+                                Text { text: "Enable or disable plugin preferences. Runtime integrations are not yet available."; color: #aaaaaf; font-size: 12px; wrap: word-wrap; }
+                                for plugin[i] in ["Shell", "Agent loop", "Web search"]: Rectangle {
                                     height: 74px; background: #343438; border-radius: 12px;
                                     border-width: 1px; border-color: #4a4a51;
-                                    VerticalLayout {
-                                        padding: 12px; spacing: 4px;
-                                        Text { text: plugin; color: #eeeeef; font-size: 15px; font-weight: 600; }
-                                        Text { text: "Not connected — configuration coming soon"; color: #a7a7b0; font-size: 12px; }
+                                    HorizontalLayout {
+                                        padding: 12px; spacing: 10px;
+                                        VerticalLayout {
+                                            Text { text: plugin; color: #eeeeef; font-size: 15px; font-weight: 600; }
+                                            Text { text: "Preference only — integration pending"; color: #a7a7b0; font-size: 12px; }
+                                        }
+                                        Rectangle { horizontal-stretch: 1; background: transparent; }
+                                        Rectangle {
+                                            width: 80px; background: (i == 0 ? root.plugin-shell : i == 1 ? root.plugin-agent-loop : root.plugin-web-search) ? #49648b : #45454b;
+                                            border-radius: 12px;
+                                            Text { text: (i == 0 ? root.plugin-shell : i == 1 ? root.plugin-agent-loop : root.plugin-web-search) ? "On" : "Off"; color: #eeeeef; horizontal-alignment: center; vertical-alignment: center; }
+                                            TouchArea { clicked => {
+                                                if i == 0 { root.plugin-shell = !root.plugin-shell; }
+                                                else if i == 1 { root.plugin-agent-loop = !root.plugin-agent-loop; }
+                                                else { root.plugin-web-search = !root.plugin-web-search; }
+                                                root.persist-settings();
+                                            } }
+                                        }
                                     }
                                 }
                             }
@@ -428,7 +461,7 @@ export component AppWindow inherits Window {
                                         Rectangle { horizontal-stretch: 1; background: transparent; }
                                         Text { text: root.active-mode == preset ? "Selected" : "Select"; color: #b8c4e1; font-size: 12px; vertical-alignment: center; }
                                     }
-                                    TouchArea { clicked => { root.active-mode = preset; } }
+                                    TouchArea { clicked => { root.active-mode = preset; root.persist-settings(); } }
                                 }
                             }
                             Rectangle { vertical-stretch: 1; background: transparent; }
