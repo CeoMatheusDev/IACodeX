@@ -53,6 +53,7 @@ export component AppWindow inherits Window {
     in-out property <string> provider-name: "";
     in-out property <string> provider-url: "";
     in-out property <string> provider-model: "";
+    in-out property <string> provider-original-model: "";
     in-out property <bool> provider-editor: false;
     function persist-settings() { root.save-settings(root.active-mode, root.settings-permission, root.settings-language, root.settings-appearance, root.settings-enter, root.settings-provider, root.plugin-shell, root.plugin-agent-loop, root.plugin-web-search); }
     in-out property <bool> settings-open: false;
@@ -830,7 +831,7 @@ export component AppWindow inherits Window {
                 Rectangle {
                     height: 34px; background: #393b45; border-radius: 9px;
                     Text { text: "+ Add model"; color: white; font-size: 13px; horizontal-alignment: center; vertical-alignment: center; }
-                    TouchArea { clicked => { root.provider-model-added = true; root.provider-model-expanded = false; root.provider-model = ""; root.provider-model-display = ""; root.provider-model-context = ""; root.provider-model-max-output = ""; } }
+                    TouchArea { clicked => { root.provider-model-added = true; root.provider-model-expanded = false; root.provider-model = ""; root.provider-original-model = ""; root.provider-model-display = ""; root.provider-model-context = ""; root.provider-model-max-output = ""; } }
                 }
                 if root.provider-status != "": Text { text: root.provider-status; color: root.fg-muted; font-size: 12px; }
                 Rectangle { vertical-stretch: 1; background: transparent; }
