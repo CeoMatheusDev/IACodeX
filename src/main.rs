@@ -159,6 +159,8 @@ fn main() -> Result<(), slint::PlatformError> {
         .expect("Tokio runtime could not start");
     let detected_dark = system_prefers_dark();
     let app = AppWindow::new()?;
+    // Start maximized while retaining the desktop window controls (minimize/maximize/close).
+    app.window().set_maximized(true);
     app.set_system_dark(detected_dark);
     let workspace_list = Rc::new(VecModel::<slint::SharedString>::from(
         read_workspaces().into_iter().map(Into::into).collect::<Vec<_>>()
